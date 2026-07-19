@@ -1,0 +1,165 @@
+# --- Dependencies ---
+node_modules/
+frontend/node_modules/
+**/node_modules/
+
+# --- Frontend build / Vite ---
+frontend/dist/
+frontend/dist-ssr/
+*.local
+.vite/
+frontend/.vite/
+
+# Wails caches a hash of package.json after install
+frontend/package.json.md5
+
+# --- Wails / Go build output ---
+build/bin/
+build/darwin/Contents/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.a
+*.o
+*.obj
+*.lib
+*.exp
+*.pdb
+*.ilk
+
+# Go workspace / module cache noise (local)
+go.work
+go.work.sum
+vendor/
+
+# Coverage / profiling
+coverage.out
+coverage.html
+*.cover
+*.prof
+*.pprof
+cpu.out
+mem.out
+trace.out
+
+# --- OS ---
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.stackdump
+[Dd]esktop.ini
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# --- Editors / IDEs ---
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
+*.temp
+*.orig
+*.rej
+.history/
+.ionide/
+*.sublime-project
+*.sublime-workspace
+
+# Cursor / AI tooling local state
+.cursor/
+.cursorrules.local
+
+# --- Env / secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.*
+credentials.*
+*.secret
+
+# --- Logs ---
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- Package manager noise ---
+.npm/
+.yarn/
+.pnp.*
+.pnpm-store/
+
+# --- Test / debug artifacts ---
+debug/
+tmp/
+temp/
+*.pid
+*.seed
+*.pid.lock
+
+# --- Wails installer / WebView2 bootstrapper (large binary) ---
+build/windows/installer/tmp/
+**/MicrosoftEdgeWebview2Setup.exe
+
+# --- Misc ---
+*.tgz
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz
+.cache/
+.parcel-cache/
+.turbo/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo

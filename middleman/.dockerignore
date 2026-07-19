@@ -1,0 +1,10 @@
+data
+*.db
+*.exe
+.env
+.git
+.gitignore
+README.md
+Dockerfile
+compose.yml
+**/*_test.go

@@ -1,0 +1,25 @@
+services:
+  middleman:
+    build: .
+    image: Marijn17s/metaltracker-middleman:latest
+    container_name: metaltracker-middleman
+    restart: unless-stopped
+    ports:
+      - "${MIDDLEMAN_HOST_PORT:-8080}:8080"
+    env_file:
+      - .env
+    environment:
+      LISTEN_ADDR: ":8080"
+      DB_PATH: /data/prices.db
+      POLL_INTERVAL: ${POLL_INTERVAL:-1h}
+    volumes:
+      - middleman-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  middleman-data:

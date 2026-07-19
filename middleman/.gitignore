@@ -1,0 +1,6 @@
+/data/
+*.db
+/*.exe
+/middleman
+.env
+.env.local
