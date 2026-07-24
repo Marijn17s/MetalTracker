@@ -16,6 +16,7 @@ import {
 } from '../../wailsjs/go/main/App';
 import {ConfirmDialog} from '../components/ConfirmDialog';
 import {isCompletePin, PinInput} from '../components/PinInput';
+import {showToast} from '../components/Toast';
 import {UpdateDialog} from '../components/UpdateDialog';
 import {useLocale} from '../i18n/LocaleContext';
 import {
@@ -99,9 +100,9 @@ export function Settings({onInventoryChanged, onVaultLocked}: SettingsProps) {
       const result = await CheckForUpdates() as UpdateCheckResult;
       setUpdateCheck(result);
       if (result?.available) {
-        setUpdateMessage(t('settings.updateAvailable', {version: result.latestVersion}));
+        showToast({message: t('settings.updateAvailable', {version: result.latestVersion})});
       } else {
-        setUpdateMessage(t('settings.upToDate'));
+        showToast({message: t('settings.upToDate')});
       }
     } catch (err) {
       setUpdateError(formatAppError(err));
