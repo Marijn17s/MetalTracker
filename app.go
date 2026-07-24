@@ -223,12 +223,26 @@ func (application *App) GetAppVersion() string {
 	return application.services.GetAppVersion()
 }
 
+func (application *App) GetDateFormatPattern() string {
+	return service.DateFormatPattern()
+}
+
 func (application *App) CheckForUpdates() (domain.UpdateCheckResult, error) {
 	return application.services.CheckForUpdates(application.ctx)
 }
 
 func (application *App) InstallUpdate() error {
-	kind, err := application.services.InstallUpdate(application.ctx)
+	kind, err := application.services.InstallUpdate(application.ctx, func(downloaded, total int64) {
+		percent := -1.0
+		if total > 0 {
+			percent = float64(downloaded) / float64(total) * 100
+		}
+		runtime.EventsEmit(application.ctx, "update:download-progress", map[string]interface{}{
+			"downloaded": downloaded,
+			"total":      total,
+			"percent":    percent,
+		})
+	})
 	if err != nil {
 		return err
 	}

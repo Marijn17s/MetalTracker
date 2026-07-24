@@ -1,8 +1,19 @@
 import {useCallback, useEffect, useState} from 'react';
-import {GetSettings, IsUnlocked, Lock, RestoreHoldingUnit, TouchActivity} from '../wailsjs/go/main/App';
+import {
+  CheckForUpdates,
+  GetDateFormatPattern,
+  GetSettings,
+  InstallUpdate,
+  IsUnlocked,
+  Lock,
+  RestoreHoldingUnit,
+  TouchActivity,
+  UpdateSettings,
+} from '../wailsjs/go/main/App';
 import {LockScreen} from './components/LockScreen';
 import {Shell} from './components/Shell';
 import {showToast, ToastHost} from './components/Toast';
+import {UpdateDialog} from './components/UpdateDialog';
 import {LocaleProvider, useLocale} from './i18n/LocaleContext';
 import {AddInvestment} from './pages/AddInvestment';
 import {Dashboard} from './pages/Dashboard';
@@ -13,9 +24,11 @@ import {Monthly} from './pages/Monthly';
 import {Settings} from './pages/Settings';
 import {SoldArchive} from './pages/SoldArchive';
 import {UnitDetail} from './pages/UnitDetail';
-import {AddInvestmentPrefill, AppSettings, AppView} from './types';
-import {setFormatLocale} from './utils/format';
+import {AddInvestmentPrefill, AppSettings, AppView, UpdateCheckResult} from './types';
+import {formatAppError} from './utils/errors';
+import {setDateFormatPattern, setFormatLocale} from './utils/format';
 import {applyTheme} from './utils/theme';
+import {subscribeUpdateDownloadProgress, UpdateDownloadProgress} from './utils/updateProgress';
 import './App.css';
 
 function AppShell() {
@@ -28,6 +41,12 @@ function AppShell() {
   const [holdingsRefresh, setHoldingsRefresh] = useState(0);
   const [addPrefill, setAddPrefill] = useState<AddInvestmentPrefill | null>(null);
   const [unitBackView, setUnitBackView] = useState<AppView>('group');
+  const [appSettings, setAppSettings] = useState<AppSettings | null>(null);
+  const [startupUpdate, setStartupUpdate] = useState<UpdateCheckResult | null>(null);
+  const [showStartupUpdate, setShowStartupUpdate] = useState(false);
+  const [startupUpdateBusy, setStartupUpdateBusy] = useState(false);
+  const [startupUpdateProgress, setStartupUpdateProgress] = useState<UpdateDownloadProgress | null>(null);
+  const [startupUpdateError, setStartupUpdateError] = useState('');
 
   useEffect(() => {
     setFormatLocale(intl);
@@ -37,19 +56,48 @@ function AppShell() {
     IsUnlocked()
       .then((value) => setUnlocked(value))
       .finally(() => setChecking(false));
+    GetDateFormatPattern()
+      .then(setDateFormatPattern)
+      .catch(() => setDateFormatPattern(''));
   }, []);
 
   useEffect(() => {
     if (!unlocked) {
       applyTheme('dark');
+      setAppSettings(null);
+      setStartupUpdate(null);
+      setShowStartupUpdate(false);
+      setStartupUpdateBusy(false);
+      setStartupUpdateProgress(null);
+      setStartupUpdateError('');
       return;
     }
+
+    let cancelled = false;
     GetSettings()
-      .then((settings) => {
+      .then(async (settings) => {
         const loaded = settings as AppSettings;
+        if (cancelled) return;
         applyTheme(loaded.uiTheme);
+        setAppSettings({
+          ...loaded,
+          skippedUpdateVersion: loaded.skippedUpdateVersion || '',
+        });
+        try {
+          const result = await CheckForUpdates() as UpdateCheckResult;
+          if (cancelled || !result?.available) return;
+          if ((loaded.skippedUpdateVersion || '').trim() === result.latestVersion) return;
+          setStartupUpdate(result);
+          setShowStartupUpdate(true);
+        } catch {
+          // Startup checks are silent so network errors do not interrupt the vault.
+        }
       })
       .catch(() => applyTheme('dark'));
+
+    return () => {
+      cancelled = true;
+    };
   }, [unlocked]);
 
   useEffect(() => {
@@ -82,6 +130,38 @@ function AppShell() {
   const clearAddPrefill = useCallback(() => {
     setAddPrefill(null);
   }, []);
+
+  const handleStartupInstallUpdate = useCallback(async () => {
+    setStartupUpdateBusy(true);
+    setStartupUpdateError('');
+    setStartupUpdateProgress(null);
+    const unsubscribe = subscribeUpdateDownloadProgress(setStartupUpdateProgress);
+    try {
+      await InstallUpdate();
+    } catch (err) {
+      setStartupUpdateError(formatAppError(err));
+      setStartupUpdateBusy(false);
+      setStartupUpdateProgress(null);
+    } finally {
+      unsubscribe();
+    }
+  }, []);
+
+  const handleStartupSkipUpdate = useCallback(async () => {
+    if (!appSettings || !startupUpdate?.available || startupUpdateBusy) return;
+    setStartupUpdateError('');
+    try {
+      const nextSettings: AppSettings = {
+        ...appSettings,
+        skippedUpdateVersion: startupUpdate.latestVersion,
+      };
+      await UpdateSettings(nextSettings as never);
+      setAppSettings(nextSettings);
+      setShowStartupUpdate(false);
+    } catch (err) {
+      setStartupUpdateError(formatAppError(err));
+    }
+  }, [appSettings, startupUpdate, startupUpdateBusy]);
 
   useEffect(() => {
     if (!unlocked) return;
@@ -212,6 +292,20 @@ function AppShell() {
         {view === 'help' && <Help />}
       </Shell>
       <ToastHost />
+      {showStartupUpdate && startupUpdate?.available && (
+        <UpdateDialog
+          version={startupUpdate.latestVersion}
+          releaseNotes={startupUpdate.releaseNotes}
+          busy={startupUpdateBusy}
+          progress={startupUpdateProgress}
+          error={startupUpdateError}
+          onLater={() => {
+            if (!startupUpdateBusy) setShowStartupUpdate(false);
+          }}
+          onSkip={() => void handleStartupSkipUpdate()}
+          onInstall={() => void handleStartupInstallUpdate()}
+        />
+      )}
     </>
   );
 }

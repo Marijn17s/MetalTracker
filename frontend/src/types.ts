@@ -39,6 +39,7 @@ export interface AppSettings {
   autoLockMinutes: number;
   spotPriceUnit: SpotPriceUnit;
   uiTheme: UITheme;
+  skippedUpdateVersion: string;
 }
 
 export interface InvestmentLineInput {
@@ -54,6 +55,7 @@ export interface InvestmentLineInput {
   totalPurchasePrice: number;
   totalSpotWorth: number;
   spotWorthProvided: boolean;
+  isGift: boolean;
   storageLocation: string;
   condition: string;
   mintageYear: number;
@@ -149,6 +151,7 @@ export interface UnitValuation {
   currency: Currency;
   purchasePrice: number;
   spotWorthAtPurchase: number;
+  isGift: boolean;
   purchasedAt: string;
   status: UnitStatus;
   soldAt?: string;
@@ -273,6 +276,7 @@ export interface UpdateHoldingUnitRequest {
   productName: string;
   purchasePrice: number;
   spotWorthAtPurchase: number;
+  isGift: boolean;
   purchasedAt: string;
   notes: string;
   dealer: string;

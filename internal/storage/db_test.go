@@ -20,8 +20,8 @@ func TestMigrationsAndOrphanCleanup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("version: %v", err)
 	}
-	if version != 4 {
-		t.Fatalf("expected schema version 4, got %d", version)
+	if version != 5 {
+		t.Fatalf("expected schema version 5, got %d", version)
 	}
 
 	// Re-open should be idempotent.

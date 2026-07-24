@@ -138,7 +138,7 @@ func (services *AppServices) GetPortfolioHistory(ctx context.Context, fromDate s
 					continue
 				}
 			}
-			purchasePrice, _, _ := price.ConvertAmount(unit.PurchasePrice, unit.Currency, settings.DisplayCurrency, quote)
+			purchasePrice, _, _ := price.ConvertAmount(unit.CostBasis(), unit.Currency, settings.DisplayCurrency, quote)
 			cost += purchasePrice
 			var unitWorth float64
 			if spot, ok := price.MetalSpotPerKg(quote, unit.Metal); ok {
@@ -247,7 +247,7 @@ func (services *AppServices) GetPortfolioValueAt(ctx context.Context, date strin
 			}
 		}
 
-		purchasePrice, _, _ := price.ConvertAmount(unit.PurchasePrice, unit.Currency, settings.DisplayCurrency, quote)
+		purchasePrice, _, _ := price.ConvertAmount(unit.CostBasis(), unit.Currency, settings.DisplayCurrency, quote)
 		result.CostBasis += purchasePrice
 		result.HeldUnits++
 
@@ -473,7 +473,7 @@ func buildMonthlyBreakdown(
 
 				if soldThisMonth && unit.SalePrice != nil {
 					salePrice, _, _ := price.ConvertAmount(*unit.SalePrice, unit.Currency, settings.DisplayCurrency, endQuote)
-					purchasePrice, _, _ := price.ConvertAmount(unit.PurchasePrice, unit.Currency, settings.DisplayCurrency, endQuote)
+					purchasePrice, _, _ := price.ConvertAmount(unit.CostBasis(), unit.Currency, settings.DisplayCurrency, endQuote)
 					entry.RealizedProfit += salePrice - purchasePrice
 					soldCostBasis += purchasePrice
 				}

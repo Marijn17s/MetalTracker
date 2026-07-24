@@ -67,6 +67,7 @@ export namespace domain {
 	    autoLockMinutes: number;
 	    spotPriceUnit: string;
 	    uiTheme: string;
+	    skippedUpdateVersion: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppSettings(source);
@@ -81,6 +82,7 @@ export namespace domain {
 	        this.autoLockMinutes = source["autoLockMinutes"];
 	        this.spotPriceUnit = source["spotPriceUnit"];
 	        this.uiTheme = source["uiTheme"];
+	        this.skippedUpdateVersion = source["skippedUpdateVersion"];
 	    }
 	}
 	export class Attachment {
@@ -158,6 +160,7 @@ export namespace domain {
 	    totalPurchasePrice: number;
 	    totalSpotWorth: number;
 	    spotWorthProvided: boolean;
+	    isGift: boolean;
 	    storageLocation: string;
 	    condition: string;
 	    mintageYear: number;
@@ -180,6 +183,7 @@ export namespace domain {
 	        this.totalPurchasePrice = source["totalPurchasePrice"];
 	        this.totalSpotWorth = source["totalSpotWorth"];
 	        this.spotWorthProvided = source["spotWorthProvided"];
+	        this.isGift = source["isGift"];
 	        this.storageLocation = source["storageLocation"];
 	        this.condition = source["condition"];
 	        this.mintageYear = source["mintageYear"];
@@ -680,6 +684,7 @@ export namespace domain {
 	    currency: string;
 	    purchasePrice: number;
 	    spotWorthAtPurchase: number;
+	    isGift: boolean;
 	    purchasedAt: string;
 	    status: string;
 	    soldAt?: string;
@@ -723,6 +728,7 @@ export namespace domain {
 	        this.currency = source["currency"];
 	        this.purchasePrice = source["purchasePrice"];
 	        this.spotWorthAtPurchase = source["spotWorthAtPurchase"];
+	        this.isGift = source["isGift"];
 	        this.purchasedAt = source["purchasedAt"];
 	        this.status = source["status"];
 	        this.soldAt = source["soldAt"];
@@ -779,6 +785,7 @@ export namespace domain {
 	    productName: string;
 	    purchasePrice: number;
 	    spotWorthAtPurchase: number;
+	    isGift: boolean;
 	    purchasedAt: string;
 	    notes: string;
 	    dealer: string;
@@ -805,6 +812,7 @@ export namespace domain {
 	        this.productName = source["productName"];
 	        this.purchasePrice = source["purchasePrice"];
 	        this.spotWorthAtPurchase = source["spotWorthAtPurchase"];
+	        this.isGift = source["isGift"];
 	        this.purchasedAt = source["purchasedAt"];
 	        this.notes = source["notes"];
 	        this.dealer = source["dealer"];

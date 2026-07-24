@@ -71,11 +71,14 @@ export function GroupDetail({productKey, onBack, onOpenUnit, onAddMore, onChange
   const totalWeightGrams = units.reduce((sum, unit) => sum + (unit.weightGrams || 0), 0);
   const totalFineWeight = units.reduce((sum, unit) => sum + (unit.fineWeightGrams || 0), 0);
   const heldUnits = units.filter((unit) => unit.status === 'held');
-  const heldPurchase = heldUnits.reduce((sum, unit) => sum + (unit.purchasePrice || 0), 0);
-  const heldFine = heldUnits.reduce((sum, unit) => sum + (unit.fineWeightGrams || 0), 0);
-  const totalPurchase = units.reduce((sum, unit) => sum + (unit.purchasePrice || 0), 0);
-  const breakEvenPerKg = heldFine > 0 ? heldPurchase / (heldFine / 1000) : 0;
-  const avgCostPerKg = totalFineWeight > 0 ? totalPurchase / (totalFineWeight / 1000) : 0;
+  const paidHeldUnits = heldUnits.filter((unit) => !unit.isGift);
+  const paidUnits = units.filter((unit) => !unit.isGift);
+  const heldPurchase = paidHeldUnits.reduce((sum, unit) => sum + (unit.purchasePrice || 0), 0);
+  const heldFinePaid = paidHeldUnits.reduce((sum, unit) => sum + (unit.fineWeightGrams || 0), 0);
+  const totalPurchase = paidUnits.reduce((sum, unit) => sum + (unit.purchasePrice || 0), 0);
+  const totalFinePaid = paidUnits.reduce((sum, unit) => sum + (unit.fineWeightGrams || 0), 0);
+  const breakEvenPerKg = heldFinePaid > 0 ? heldPurchase / (heldFinePaid / 1000) : 0;
+  const avgCostPerKg = totalFinePaid > 0 ? totalPurchase / (totalFinePaid / 1000) : 0;
   const currency = sample?.displayCurrency || sample?.currency || 'EUR';
   const unitLabel = spotUnitLabel(spotPriceUnit);
 
@@ -292,14 +295,16 @@ export function GroupDetail({productKey, onBack, onOpenUnit, onAddMore, onChange
                 onClick={() => onOpenUnit(unit.id)}
               >
                 <div>
-                  <h3>{unit.status === 'sold' ? t('group.soldUnit') : t('group.heldUnit')}</h3>
+                  <h3>
+                    {unit.status === 'sold' ? t('group.soldUnit') : t('group.heldUnit')}
+                    {unit.isGift ? ` · ${t('unit.gift')}` : ''}
+                  </h3>
                   <p className="muted">
                     {t('group.bought')} {formatDate(unit.purchasedAt)}
                     {unit.soldAt ? ` - ${t('group.sold')} ${formatDate(unit.soldAt)}` : ''}
                     {' - '}
                     {formatFineWeight(unit.fineWeightGrams || 0)}
                     {unit.daysHeld ? ` - ${t('sold.daysHeld', {days: unit.daysHeld})}` : ''}
-                    {unit.daysHeld ? ` - ${t('sold.annualized', {pct: formatPercent(unit.annualizedReturnPct || 0)})}` : ''}
                   </p>
                 </div>
                 <div className="holding-metrics">

@@ -50,6 +50,10 @@ export function GetAttachmentBytes(arg1) {
   return window['go']['main']['App']['GetAttachmentBytes'](arg1);
 }
 
+export function GetDateFormatPattern() {
+  return window['go']['main']['App']['GetDateFormatPattern']();
+}
+
 export function GetHoldingsFilterOptions() {
   return window['go']['main']['App']['GetHoldingsFilterOptions']();
 }

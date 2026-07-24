@@ -13,6 +13,29 @@ func TestBreakEvenAndAvgCostPerKg(t *testing.T) {
 	}
 }
 
+func TestValueUnitGift(t *testing.T) {
+	gift := HoldingUnit{
+		SpotWorthAtPurchase: 100,
+		IsGift:              true,
+		Status:              UnitStatusHeld,
+	}
+	held := ValueUnit(gift, 250)
+	if held.TotalProfit != 250 {
+		t.Fatalf("gift unrealized want 250, got %v", held.TotalProfit)
+	}
+	if held.PremiumPaid != 0 {
+		t.Fatalf("gift premium want 0, got %v", held.PremiumPaid)
+	}
+
+	salePrice := 300.0
+	gift.Status = UnitStatusSold
+	gift.SalePrice = &salePrice
+	sold := ValueUnit(gift, 0)
+	if sold.TotalProfit != 300 {
+		t.Fatalf("gift realized want 300, got %v", sold.TotalProfit)
+	}
+}
+
 func TestSpotPriceToPerKg(t *testing.T) {
 	perGram := 100.0
 	perKg := SpotPriceToPerKg(perGram, SpotPriceUnitGram)

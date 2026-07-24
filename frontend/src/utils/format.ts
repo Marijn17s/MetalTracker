@@ -4,9 +4,14 @@ const GRAMS_PER_TROY_OUNCE = 31.1034768;
 const GRAMS_PER_KILOGRAM = 1000;
 
 let activeIntlLocale: string | undefined;
+let activeDateFormatPattern = '';
 
 export function setFormatLocale(locale: string | undefined): void {
   activeIntlLocale = locale;
+}
+
+export function setDateFormatPattern(pattern: string): void {
+  activeDateFormatPattern = pattern.trim();
 }
 
 export function formatMoney(value: number, currency: string = 'EUR'): string {
@@ -54,12 +59,78 @@ export function profitClass(value: number): string {
 }
 
 export function formatDate(value?: string): string {
-	if (!value) return '-';
-  const date = new Date(value);
+  if (!value) return '-';
+  const date = new Date(value.includes('T') ? value : `${value}T00:00:00`);
   if (Number.isNaN(date.getTime())) {
     return value.slice(0, 10);
   }
+  if (activeDateFormatPattern) {
+    return formatDateUsingPattern(date, activeDateFormatPattern);
+  }
   return date.toLocaleDateString(activeIntlLocale);
+}
+
+export function formatDateTime(value?: string): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  const time = date.toLocaleTimeString(activeIntlLocale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+  return `${formatDate(value)}, ${time}`;
+}
+
+function formatDateUsingPattern(date: Date, pattern: string): string {
+  let result = '';
+  for (let index = 0; index < pattern.length;) {
+    if (pattern[index] === "'") {
+      const literalEnd = pattern.indexOf("'", index + 1);
+      if (literalEnd === -1) {
+        result += pattern.slice(index + 1);
+        break;
+      }
+      result += pattern.slice(index + 1, literalEnd);
+      index = literalEnd + 1;
+      continue;
+    }
+
+    const tokenMatch = pattern.slice(index).match(/^(d{1,4}|M{1,4}|y{2,4})/);
+    if (!tokenMatch) {
+      result += pattern[index];
+      index++;
+      continue;
+    }
+
+    const token = tokenMatch[0];
+    if (token[0] === 'd') {
+      if (token.length <= 2) {
+        const day = String(date.getDate());
+        result += token.length === 2 ? day.padStart(2, '0') : day;
+      } else {
+        result += date.toLocaleDateString(activeIntlLocale, {
+          weekday: token.length === 3 ? 'short' : 'long',
+        });
+      }
+    } else if (token[0] === 'M') {
+      if (token.length <= 2) {
+        const month = String(date.getMonth() + 1);
+        result += token.length === 2 ? month.padStart(2, '0') : month;
+      } else {
+        result += date.toLocaleDateString(activeIntlLocale, {
+          month: token.length === 3 ? 'short' : 'long',
+        });
+      }
+    } else {
+      const year = String(date.getFullYear());
+      result += token.length === 2 ? year.slice(-2) : year;
+    }
+    index += token.length;
+  }
+  return result;
 }
 
 export function todayISO(): string {

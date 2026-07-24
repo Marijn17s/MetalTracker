@@ -12,7 +12,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -38,6 +37,9 @@ var (
 	ErrNoRelease = errors.New("no github release published")
 	ErrNoAsset   = errors.New("no update package for this platform")
 )
+
+// ProgressFunc reports download progress. total is -1 when Content-Length is unknown.
+type ProgressFunc func(downloaded, total int64)
 
 // Pending holds download details after a successful Check.
 type Pending struct {
@@ -115,21 +117,20 @@ func (client *Client) Check(ctx context.Context) (domain.UpdateCheckResult, *Pen
 	return result, pending, nil
 }
 
-func (client *Client) Apply(ctx context.Context, pending *Pending) error {
+func (client *Client) Apply(ctx context.Context, pending *Pending, onProgress ProgressFunc) error {
 	if pending == nil {
 		return fmt.Errorf("no pending update")
 	}
 
-	tempPath, err := client.downloadVerified(ctx, pending)
+	tempPath, err := client.downloadVerified(ctx, pending, onProgress)
 	if err != nil {
 		return err
 	}
 
 	if pending.Kind == KindInstaller {
-		command := openInstallerCommand(tempPath)
-		if err := command.Start(); err != nil {
+		if err := startInstaller(tempPath); err != nil {
 			_ = os.Remove(tempPath)
-			return fmt.Errorf("start installer: %w", err)
+			return err
 		}
 		return nil
 	}
@@ -155,13 +156,6 @@ func (client *Client) Apply(ctx context.Context, pending *Pending) error {
 		return fmt.Errorf("apply update: %w", err)
 	}
 	return nil
-}
-
-func openInstallerCommand(path string) *exec.Cmd {
-	if runtime.GOOS == "darwin" {
-		return exec.Command("open", path)
-	}
-	return exec.Command(path)
 }
 
 func isTarGzName(name string) bool {
@@ -217,7 +211,7 @@ func extractFirstFileFromTarGz(archivePath string) (string, error) {
 	}
 }
 
-func (client *Client) downloadVerified(ctx context.Context, pending *Pending) (string, error) {
+func (client *Client) downloadVerified(ctx context.Context, pending *Pending, onProgress ProgressFunc) (string, error) {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, pending.DownloadURL, nil)
 	if err != nil {
 		return "", err
@@ -225,7 +219,9 @@ func (client *Client) downloadVerified(ctx context.Context, pending *Pending) (s
 	request.Header.Set("Accept", "application/octet-stream")
 	request.Header.Set("User-Agent", "MetalTracker/"+version.Display())
 
-	response, err := client.httpClient.Do(request)
+	// Downloads can take several minutes on slow connections.
+	downloadClient := &http.Client{Timeout: 30 * time.Minute}
+	response, err := downloadClient.Do(request)
 	if err != nil {
 		return "", err
 	}
@@ -240,13 +236,24 @@ func (client *Client) downloadVerified(ctx context.Context, pending *Pending) (s
 	}
 	tempPath := tempFile.Name()
 
+	total := response.ContentLength
+	if total <= 0 {
+		total = -1
+	}
+	progressBody := &progressReader{
+		reader:     response.Body,
+		total:      total,
+		onProgress: onProgress,
+	}
+
 	hasher := sha256.New()
 	writer := io.MultiWriter(tempFile, hasher)
-	if _, err := io.Copy(writer, response.Body); err != nil {
+	if _, err := io.Copy(writer, progressBody); err != nil {
 		tempFile.Close()
 		_ = os.Remove(tempPath)
 		return "", err
 	}
+	progressBody.finish()
 	if err := tempFile.Close(); err != nil {
 		_ = os.Remove(tempPath)
 		return "", err
@@ -269,6 +276,50 @@ func (client *Client) downloadVerified(ctx context.Context, pending *Pending) (s
 	}
 
 	return finalPath, nil
+}
+
+type progressReader struct {
+	reader      io.Reader
+	total       int64
+	downloaded  int64
+	onProgress  ProgressFunc
+	lastEmit    time.Time
+	lastPercent int
+}
+
+func (reader *progressReader) Read(buffer []byte) (int, error) {
+	count, err := reader.reader.Read(buffer)
+	if count > 0 {
+		reader.downloaded += int64(count)
+		reader.emitThrottled(false)
+	}
+	return count, err
+}
+
+func (reader *progressReader) finish() {
+	reader.emitThrottled(true)
+}
+
+func (reader *progressReader) emitThrottled(force bool) {
+	if reader.onProgress == nil {
+		return
+	}
+	percent := -1
+	if reader.total > 0 {
+		percent = int(reader.downloaded * 100 / reader.total)
+		if percent > 100 {
+			percent = 100
+		}
+	}
+	now := time.Now()
+	if !force && !reader.lastEmit.IsZero() &&
+		now.Sub(reader.lastEmit) < 200*time.Millisecond &&
+		percent == reader.lastPercent {
+		return
+	}
+	reader.lastEmit = now
+	reader.lastPercent = percent
+	reader.onProgress(reader.downloaded, reader.total)
 }
 
 type githubRelease struct {

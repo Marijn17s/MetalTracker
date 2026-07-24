@@ -172,7 +172,6 @@ export function SoldArchive({onOpenUnit}: SoldArchiveProps) {
                   {unit.soldAt ? ` - ${t('sold.soldOn', {date: formatDate(unit.soldAt)})}` : ''}
                   {' - '}{formatFineWeight(unit.fineWeightGrams || 0)}
                   {unit.daysHeld ? ` - ${t('sold.daysHeld', {days: unit.daysHeld})}` : ''}
-                  {unit.daysHeld ? ` - ${t('sold.annualized', {pct: formatPercent(unit.annualizedReturnPct || 0)})}` : ''}
                 </p>
               </div>
               <div className="holding-metrics">

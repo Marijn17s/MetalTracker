@@ -55,6 +55,7 @@ interface EditFormState {
   productName: string;
   purchasePrice: number;
   spotWorthAtPurchase: number;
+  isGift: boolean;
   purchasedAt: string;
   notes: string;
   dealer: string;
@@ -82,6 +83,7 @@ function toEditForm(unit: UnitValuation): EditFormState {
     productName: unit.productName,
     purchasePrice: unit.purchasePrice,
     spotWorthAtPurchase: unit.spotWorthAtPurchase,
+    isGift: Boolean(unit.isGift),
     purchasedAt: toDateInput(unit.purchasedAt),
     notes: unit.notes,
     dealer: unit.dealer,
@@ -160,8 +162,9 @@ export function UnitDetail({unitId, onBack, onChanged, onDeleted, onAddMore}: Un
         purity: editForm.purity,
         brand: editForm.brand,
         productName: editForm.productName,
-        purchasePrice: editForm.purchasePrice,
+        purchasePrice: editForm.isGift ? 0 : editForm.purchasePrice,
         spotWorthAtPurchase: editForm.spotWorthAtPurchase,
+        isGift: editForm.isGift,
         purchasedAt: editForm.purchasedAt,
         notes: editForm.notes,
         dealer: editForm.dealer,
@@ -260,7 +263,7 @@ export function UnitDetail({unitId, onBack, onChanged, onDeleted, onAddMore}: Un
       <section className="stat-grid">
         <article className="glass panel stat-card">
           <p className="muted">{t('unit.purchasePrice')} ({currency})</p>
-          <strong>{formatMoney(unit.purchasePrice, currency)}</strong>
+          <strong>{unit.isGift ? t('unit.gift') : formatMoney(unit.purchasePrice, currency)}</strong>
         </article>
         <article className="glass panel stat-card">
           <p className="muted">{t('unit.spotAtPurchase')}</p>
@@ -284,7 +287,10 @@ export function UnitDetail({unitId, onBack, onChanged, onDeleted, onAddMore}: Un
           <div><dt>{t('unit.purchased')}</dt><dd>{formatDate(unit.purchasedAt)}</dd></div>
           <div>
             <dt>{t('unit.status')}</dt>
-            <dd>{unit.status === 'sold' ? t('unit.statusSold') : t('unit.statusHeld')}</dd>
+            <dd>
+              {unit.status === 'sold' ? t('unit.statusSold') : t('unit.statusHeld')}
+              {unit.isGift ? ` · ${t('unit.gift')}` : ''}
+            </dd>
           </div>
           <div><dt>{t('unit.fineWeight')}</dt><dd>{formatFineWeight(unit.fineWeightGrams || 0)}</dd></div>
           {unit.soldAt && <div><dt>{t('unit.sold')}</dt><dd>{formatDate(unit.soldAt)}</dd></div>}
@@ -459,15 +465,31 @@ export function UnitDetail({unitId, onBack, onChanged, onDeleted, onAddMore}: Un
                   onChange={(event) => setEditForm({...editForm, productName: event.target.value})}
                 />
               </label>
+              <label className={`gift-toggle span-2${editForm.isGift ? ' is-active' : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={editForm.isGift}
+                  onChange={(event) => setEditForm({
+                    ...editForm,
+                    isGift: event.target.checked,
+                    purchasePrice: event.target.checked ? 0 : editForm.purchasePrice,
+                  })}
+                />
+                <span className="gift-toggle-copy">
+                  <strong>{t('unit.isGift')}</strong>
+                  <span>{t('unit.giftHelp')}</span>
+                </span>
+              </label>
               <label>
                 {t('unit.purchasePrice')}
                 <input
                   type="number"
                   min="0"
                   step="any"
-                  value={editForm.purchasePrice}
+                  value={editForm.isGift ? 0 : editForm.purchasePrice}
                   onChange={(event) => setEditForm({...editForm, purchasePrice: Number(event.target.value)})}
-                  required
+                  required={!editForm.isGift}
+                  disabled={editForm.isGift}
                 />
               </label>
               <label>

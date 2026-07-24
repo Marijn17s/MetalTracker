@@ -3,25 +3,28 @@ package domain
 import "math"
 
 func ValueUnit(unit HoldingUnit, currentSpotWorth float64) UnitValuation {
+	costBasis := unit.CostBasis()
 	valuation := UnitValuation{
 		HoldingUnit:      unit,
 		CurrentSpotWorth: currentSpotWorth,
-		PremiumPaid:      unit.PurchasePrice - unit.SpotWorthAtPurchase,
+	}
+	if !unit.IsGift {
+		valuation.PremiumPaid = unit.PurchasePrice - unit.SpotWorthAtPurchase
 	}
 
 	if unit.Status == UnitStatusSold && unit.SalePrice != nil {
 		valuation.IsRealized = true
-		valuation.TotalProfit = *unit.SalePrice - unit.PurchasePrice
+		valuation.TotalProfit = *unit.SalePrice - costBasis
 		valuation.MetalDelta = *unit.SalePrice - unit.SpotWorthAtPurchase
 		valuation.CurrentSpotWorth = *unit.SalePrice
 	} else {
 		valuation.IsRealized = false
-		valuation.TotalProfit = currentSpotWorth - unit.PurchasePrice
+		valuation.TotalProfit = currentSpotWorth - costBasis
 		valuation.MetalDelta = currentSpotWorth - unit.SpotWorthAtPurchase
 	}
 
-	if unit.PurchasePrice != 0 {
-		valuation.TotalProfitPct = (valuation.TotalProfit / unit.PurchasePrice) * 100
+	if costBasis != 0 {
+		valuation.TotalProfitPct = (valuation.TotalProfit / costBasis) * 100
 	}
 	return valuation
 }

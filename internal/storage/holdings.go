@@ -46,8 +46,8 @@ func (database *DB) CreateInvestment(request domain.CreateInvestmentRequest, lin
 					id, investment_id, asset_class, metal, form, weight_grams, purity,
 					brand, product_name, product_key, currency, purchase_price,
 					spot_worth_at_purchase, purchased_at, status, sold_at, sale_price, notes, dealer,
-					storage_location, condition, mintage_year, assay_notes, verified_at
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?)`,
+					storage_location, condition, mintage_year, assay_notes, verified_at, is_gift
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?)`,
 				unitID,
 				investmentID,
 				string(line.AssetClass),
@@ -70,6 +70,7 @@ func (database *DB) CreateInvestment(request domain.CreateInvestmentRequest, lin
 				line.MintageYear,
 				"",
 				"",
+				boolToInt(line.IsGift),
 			); err != nil {
 				return "", err
 			}
@@ -94,9 +95,10 @@ type preparedLine struct {
 	Quantity          int
 	UnitPurchasePrice float64
 	UnitSpotWorth     float64
-	StorageLocation string
-	Condition       string
-	MintageYear     int
+	IsGift            bool
+	StorageLocation   string
+	Condition         string
+	MintageYear       int
 }
 
 func PrepareLines(inputs []domain.InvestmentLineInput) ([]preparedLine, error) {
@@ -126,6 +128,10 @@ func PrepareLines(inputs []domain.InvestmentLineInput) ([]preparedLine, error) {
 			Brand:       strings.TrimSpace(input.Brand),
 			ProductName: strings.TrimSpace(input.ProductName),
 		}
+		totalPurchasePrice := input.TotalPurchasePrice
+		if input.IsGift {
+			totalPurchasePrice = 0
+		}
 		prepared = append(prepared, preparedLine{
 			AssetClass:        assetClass,
 			Metal:             input.Metal,
@@ -136,8 +142,9 @@ func PrepareLines(inputs []domain.InvestmentLineInput) ([]preparedLine, error) {
 			ProductName:       productKey.ProductName,
 			ProductKey:        productKey.String(),
 			Quantity:          input.Quantity,
-			UnitPurchasePrice: input.TotalPurchasePrice / float64(input.Quantity),
+			UnitPurchasePrice: totalPurchasePrice / float64(input.Quantity),
 			UnitSpotWorth:     input.TotalSpotWorth / float64(input.Quantity),
+			IsGift:            input.IsGift,
 			StorageLocation:   strings.TrimSpace(input.StorageLocation),
 			Condition:         strings.TrimSpace(input.Condition),
 			MintageYear:       input.MintageYear,
@@ -150,7 +157,7 @@ const unitSelectColumns = `
 	id, investment_id, asset_class, metal, form, weight_grams, purity,
 	brand, product_name, product_key, currency, purchase_price,
 	spot_worth_at_purchase, purchased_at, status, sold_at, sale_price, notes, dealer,
-	storage_location, condition, mintage_year, assay_notes, verified_at, deleted_at`
+	storage_location, condition, mintage_year, assay_notes, verified_at, deleted_at, is_gift`
 
 const activeUnitClause = `(deleted_at IS NULL OR deleted_at = '')`
 
@@ -169,9 +176,9 @@ func (database *DB) ListUnits() ([]domain.HoldingUnit, error) {
 
 func (database *DB) ListUnitsByProductKey(productKey string) ([]domain.HoldingUnit, error) {
 	rows, err := database.conn.Query(`
-		SELECT ` + unitSelectColumns + `
+		SELECT `+unitSelectColumns+`
 		FROM holding_units
-		WHERE product_key = ? AND ` + activeUnitClause + `
+		WHERE product_key = ? AND `+activeUnitClause+`
 		ORDER BY purchased_at DESC, id ASC`, productKey)
 	if err != nil {
 		return nil, err
@@ -182,9 +189,9 @@ func (database *DB) ListUnitsByProductKey(productKey string) ([]domain.HoldingUn
 
 func (database *DB) ListSoldUnits() ([]domain.HoldingUnit, error) {
 	rows, err := database.conn.Query(`
-		SELECT ` + unitSelectColumns + `
+		SELECT `+unitSelectColumns+`
 		FROM holding_units
-		WHERE status = ? AND ` + activeUnitClause + `
+		WHERE status = ? AND `+activeUnitClause+`
 		ORDER BY sold_at DESC, purchased_at DESC, id ASC`,
 		string(domain.UnitStatusSold),
 	)
@@ -267,7 +274,7 @@ func (database *DB) UpdateUnit(unit domain.HoldingUnit) error {
 		    brand = ?, product_name = ?, product_key = ?, purchase_price = ?,
 		    spot_worth_at_purchase = ?, purchased_at = ?, status = ?,
 		    sold_at = ?, sale_price = ?, notes = ?, dealer = ?,
-		    storage_location = ?, condition = ?, mintage_year = ?
+		    storage_location = ?, condition = ?, mintage_year = ?, is_gift = ?
 		WHERE id = ? AND `+activeUnitClause,
 		string(unit.AssetClass),
 		string(unit.Metal),
@@ -288,6 +295,7 @@ func (database *DB) UpdateUnit(unit domain.HoldingUnit) error {
 		unit.StorageLocation,
 		unit.Condition,
 		unit.MintageYear,
+		boolToInt(unit.IsGift),
 		unit.ID,
 	)
 	if err != nil {
@@ -441,6 +449,13 @@ type scanner interface {
 	Scan(dest ...any) error
 }
 
+func boolToInt(value bool) int {
+	if value {
+		return 1
+	}
+	return 0
+}
+
 func scanUnit(row scanner) (domain.HoldingUnit, error) {
 	var unit domain.HoldingUnit
 	var purchasedAt string
@@ -450,6 +465,7 @@ func scanUnit(row scanner) (domain.HoldingUnit, error) {
 	var unusedAssayNotes string
 	var unusedVerifiedAt string
 	var deletedAt string
+	var isGift int
 
 	err := row.Scan(
 		&unit.ID,
@@ -477,6 +493,7 @@ func scanUnit(row scanner) (domain.HoldingUnit, error) {
 		&unusedAssayNotes,
 		&unusedVerifiedAt,
 		&deletedAt,
+		&isGift,
 	)
 	if err != nil {
 		return unit, err
@@ -487,6 +504,7 @@ func scanUnit(row scanner) (domain.HoldingUnit, error) {
 	unit.Form = domain.Form(form)
 	unit.Currency = domain.Currency(currency)
 	unit.Status = domain.UnitStatus(status)
+	unit.IsGift = isGift != 0
 	unit.PurchasedAt = purchasedAt
 	unit.DeletedAt = deletedAt
 	if soldAt.Valid {

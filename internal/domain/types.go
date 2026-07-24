@@ -28,9 +28,9 @@ const (
 type WeightUnit string
 
 const (
-	WeightUnitGram      WeightUnit = "g"
-	WeightUnitKilogram  WeightUnit = "kg"
-	WeightUnitTroyOz    WeightUnit = "troy_oz"
+	WeightUnitGram     WeightUnit = "g"
+	WeightUnitKilogram WeightUnit = "kg"
+	WeightUnitTroyOz   WeightUnit = "troy_oz"
 )
 
 type Currency string
@@ -123,9 +123,10 @@ type InvestmentLineInput struct {
 	TotalPurchasePrice float64     `json:"totalPurchasePrice"`
 	TotalSpotWorth     float64     `json:"totalSpotWorth"`
 	SpotWorthProvided  bool        `json:"spotWorthProvided"`
-	StorageLocation string `json:"storageLocation"`
-	Condition       string `json:"condition"`
-	MintageYear     int    `json:"mintageYear"`
+	IsGift             bool        `json:"isGift"`
+	StorageLocation    string      `json:"storageLocation"`
+	Condition          string      `json:"condition"`
+	MintageYear        int         `json:"mintageYear"`
 }
 
 type CreateInvestmentRequest struct {
@@ -150,6 +151,7 @@ type HoldingUnit struct {
 	Currency            Currency    `json:"currency"`
 	PurchasePrice       float64     `json:"purchasePrice"`
 	SpotWorthAtPurchase float64     `json:"spotWorthAtPurchase"`
+	IsGift              bool        `json:"isGift"`
 	PurchasedAt         string      `json:"purchasedAt"`
 	Status              UnitStatus  `json:"status"`
 	SoldAt              string      `json:"soldAt,omitempty"`
@@ -160,6 +162,14 @@ type HoldingUnit struct {
 	Condition           string      `json:"condition"`
 	MintageYear         int         `json:"mintageYear"`
 	DeletedAt           string      `json:"deletedAt,omitempty"`
+}
+
+// CostBasis is the purchase cost used in portfolio totals. Gifts contribute zero.
+func (unit HoldingUnit) CostBasis() float64 {
+	if unit.IsGift {
+		return 0
+	}
+	return unit.PurchasePrice
 }
 
 const (
@@ -188,10 +198,10 @@ type AttachmentBytes struct {
 }
 
 type DealerSummary struct {
-	Name          string  `json:"name"`
-	PurchaseCount int     `json:"purchaseCount"`
-	UnitCount     int     `json:"unitCount"`
-	TotalSpent    float64 `json:"totalSpent"`
+	Name          string   `json:"name"`
+	PurchaseCount int      `json:"purchaseCount"`
+	UnitCount     int      `json:"unitCount"`
+	TotalSpent    float64  `json:"totalSpent"`
 	Currency      Currency `json:"currency"`
 }
 
@@ -207,48 +217,48 @@ func ParseDate(value string) (time.Time, error) {
 
 type UnitValuation struct {
 	HoldingUnit
-	CurrentSpotWorth       float64  `json:"currentSpotWorth"`
-	PremiumPaid            float64  `json:"premiumPaid"`
-	MetalDelta             float64  `json:"metalDelta"`
-	TotalProfit            float64  `json:"totalProfit"`
-	TotalProfitPct         float64  `json:"totalProfitPct"`
-	IsRealized             bool     `json:"isRealized"`
-	FineWeightGrams        float64  `json:"fineWeightGrams"`
-	ValuationApproximate   bool     `json:"valuationApproximate"`
-	DisplayCurrency        Currency `json:"displayCurrency,omitempty"`
-	FxRateToDisplay        float64  `json:"fxRateToDisplay,omitempty"`
-	BreakEvenSpotPerKg float64  `json:"breakEvenSpotPerKg,omitempty"`
-	DaysHeld               int      `json:"daysHeld,omitempty"`
-	AnnualizedReturnPct    float64  `json:"annualizedReturnPct,omitempty"`
+	CurrentSpotWorth     float64  `json:"currentSpotWorth"`
+	PremiumPaid          float64  `json:"premiumPaid"`
+	MetalDelta           float64  `json:"metalDelta"`
+	TotalProfit          float64  `json:"totalProfit"`
+	TotalProfitPct       float64  `json:"totalProfitPct"`
+	IsRealized           bool     `json:"isRealized"`
+	FineWeightGrams      float64  `json:"fineWeightGrams"`
+	ValuationApproximate bool     `json:"valuationApproximate"`
+	DisplayCurrency      Currency `json:"displayCurrency,omitempty"`
+	FxRateToDisplay      float64  `json:"fxRateToDisplay,omitempty"`
+	BreakEvenSpotPerKg   float64  `json:"breakEvenSpotPerKg,omitempty"`
+	DaysHeld             int      `json:"daysHeld,omitempty"`
+	AnnualizedReturnPct  float64  `json:"annualizedReturnPct,omitempty"`
 }
 
 type GroupedHolding struct {
-	ProductKey              string      `json:"productKey"`
-	AssetClass              AssetClass  `json:"assetClass"`
-	Metal                   MetalSymbol `json:"metal"`
-	Form                    Form        `json:"form"`
-	WeightGrams             float64     `json:"weightGrams"`
-	Purity                  float64     `json:"purity"`
-	Brand                   string      `json:"brand"`
-	ProductName             string      `json:"productName"`
-	Currency                Currency    `json:"currency"`
-	DisplayCurrency         Currency    `json:"displayCurrency"`
-	HeldCount               int         `json:"heldCount"`
-	SoldCount               int         `json:"soldCount"`
-	TotalCount              int         `json:"totalCount"`
-	TotalWeightGrams        float64     `json:"totalWeightGrams"`
-	TotalFineWeightGrams    float64     `json:"totalFineWeightGrams"`
-	TotalPurchasePrice      float64     `json:"totalPurchasePrice"`
-	TotalCurrentWorth       float64     `json:"totalCurrentWorth"`
-	TotalProfit             float64     `json:"totalProfit"`
-	TotalProfitPct          float64     `json:"totalProfitPct"`
-	TotalRealizedProfit        float64 `json:"totalRealizedProfit"`
-	TotalUnrealizedProfit      float64 `json:"totalUnrealizedProfit"`
-	ValuationApproximate       bool    `json:"valuationApproximate"`
-	BreakEvenSpotPerKg         float64 `json:"breakEvenSpotPerKg,omitempty"`
-	AvgCostPerKgFine           float64 `json:"avgCostPerKgFine,omitempty"`
-	HeldPurchasePrice          float64 `json:"heldPurchasePrice,omitempty"`
-	HeldFineWeightGrams        float64 `json:"heldFineWeightGrams,omitempty"`
+	ProductKey            string      `json:"productKey"`
+	AssetClass            AssetClass  `json:"assetClass"`
+	Metal                 MetalSymbol `json:"metal"`
+	Form                  Form        `json:"form"`
+	WeightGrams           float64     `json:"weightGrams"`
+	Purity                float64     `json:"purity"`
+	Brand                 string      `json:"brand"`
+	ProductName           string      `json:"productName"`
+	Currency              Currency    `json:"currency"`
+	DisplayCurrency       Currency    `json:"displayCurrency"`
+	HeldCount             int         `json:"heldCount"`
+	SoldCount             int         `json:"soldCount"`
+	TotalCount            int         `json:"totalCount"`
+	TotalWeightGrams      float64     `json:"totalWeightGrams"`
+	TotalFineWeightGrams  float64     `json:"totalFineWeightGrams"`
+	TotalPurchasePrice    float64     `json:"totalPurchasePrice"`
+	TotalCurrentWorth     float64     `json:"totalCurrentWorth"`
+	TotalProfit           float64     `json:"totalProfit"`
+	TotalProfitPct        float64     `json:"totalProfitPct"`
+	TotalRealizedProfit   float64     `json:"totalRealizedProfit"`
+	TotalUnrealizedProfit float64     `json:"totalUnrealizedProfit"`
+	ValuationApproximate  bool        `json:"valuationApproximate"`
+	BreakEvenSpotPerKg    float64     `json:"breakEvenSpotPerKg,omitempty"`
+	AvgCostPerKgFine      float64     `json:"avgCostPerKgFine,omitempty"`
+	HeldPurchasePrice     float64     `json:"heldPurchasePrice,omitempty"`
+	HeldFineWeightGrams   float64     `json:"heldFineWeightGrams,omitempty"`
 }
 
 type HoldingsFilter struct {
@@ -282,13 +292,14 @@ type BulkUpdateHoldingUnitsRequest struct {
 }
 
 type AppSettings struct {
-	DisplayCurrency  Currency      `json:"displayCurrency"`
-	PriceSource      PriceSource   `json:"priceSource"`
-	MetalpriceAPIKey string        `json:"metalpriceApiKey"`
-	MiddlemanBaseURL string        `json:"middlemanBaseUrl"`
-	AutoLockMinutes  int           `json:"autoLockMinutes"`
-	SpotPriceUnit    SpotPriceUnit `json:"spotPriceUnit"`
-	UITheme          UITheme       `json:"uiTheme"`
+	DisplayCurrency      Currency      `json:"displayCurrency"`
+	PriceSource          PriceSource   `json:"priceSource"`
+	MetalpriceAPIKey     string        `json:"metalpriceApiKey"`
+	MiddlemanBaseURL     string        `json:"middlemanBaseUrl"`
+	AutoLockMinutes      int           `json:"autoLockMinutes"`
+	SpotPriceUnit        SpotPriceUnit `json:"spotPriceUnit"`
+	UITheme              UITheme       `json:"uiTheme"`
+	SkippedUpdateVersion string        `json:"skippedUpdateVersion"`
 }
 
 type PortfolioSummary struct {
@@ -312,31 +323,31 @@ type PortfolioSummary struct {
 }
 
 type PortfolioHistoryPoint struct {
-	Date           string  `json:"date"`
-	PortfolioWorth float64 `json:"portfolioWorth"`
-	CostBasis      float64 `json:"costBasis"`
-	GoldWorth      float64 `json:"goldWorth"`
-	GoldCostBasis  float64 `json:"goldCostBasis"`
-	SilverWorth    float64 `json:"silverWorth"`
+	Date            string  `json:"date"`
+	PortfolioWorth  float64 `json:"portfolioWorth"`
+	CostBasis       float64 `json:"costBasis"`
+	GoldWorth       float64 `json:"goldWorth"`
+	GoldCostBasis   float64 `json:"goldCostBasis"`
+	SilverWorth     float64 `json:"silverWorth"`
 	SilverCostBasis float64 `json:"silverCostBasis"`
 }
 
 type PortfolioValueAt struct {
-	Date                  string   `json:"date"`
-	DisplayCurrency       Currency `json:"displayCurrency"`
-	PortfolioWorth        float64  `json:"portfolioWorth"`
-	CostBasis             float64  `json:"costBasis"`
-	UnrealizedProfit      float64  `json:"unrealizedProfit"`
-	UnrealizedProfitPct   float64  `json:"unrealizedProfitPct"`
-	HeldUnits             int      `json:"heldUnits"`
-	GoldWorth             float64  `json:"goldWorth"`
-	SilverWorth           float64  `json:"silverWorth"`
-	QuoteAsOf             string   `json:"quoteAsOf"`
-	QuoteIsStale          bool     `json:"quoteIsStale"`
-	QuoteIsPartial        bool     `json:"quoteIsPartial"`
-	QuoteCacheHit         bool     `json:"quoteCacheHit"`
-	ValuationApproximate  bool     `json:"valuationApproximate"`
-	PriceErrorCode        string   `json:"priceErrorCode,omitempty"`
+	Date                 string   `json:"date"`
+	DisplayCurrency      Currency `json:"displayCurrency"`
+	PortfolioWorth       float64  `json:"portfolioWorth"`
+	CostBasis            float64  `json:"costBasis"`
+	UnrealizedProfit     float64  `json:"unrealizedProfit"`
+	UnrealizedProfitPct  float64  `json:"unrealizedProfitPct"`
+	HeldUnits            int      `json:"heldUnits"`
+	GoldWorth            float64  `json:"goldWorth"`
+	SilverWorth          float64  `json:"silverWorth"`
+	QuoteAsOf            string   `json:"quoteAsOf"`
+	QuoteIsStale         bool     `json:"quoteIsStale"`
+	QuoteIsPartial       bool     `json:"quoteIsPartial"`
+	QuoteCacheHit        bool     `json:"quoteCacheHit"`
+	ValuationApproximate bool     `json:"valuationApproximate"`
+	PriceErrorCode       string   `json:"priceErrorCode,omitempty"`
 }
 
 type MonthlyMetalBreakdown struct {
@@ -362,26 +373,27 @@ type UpdateHoldingUnitRequest struct {
 	ProductName         string      `json:"productName"`
 	PurchasePrice       float64     `json:"purchasePrice"`
 	SpotWorthAtPurchase float64     `json:"spotWorthAtPurchase"`
+	IsGift              bool        `json:"isGift"`
 	PurchasedAt         string      `json:"purchasedAt"`
 	Notes               string      `json:"notes"`
 	Dealer              string      `json:"dealer"`
 	Status              UnitStatus  `json:"status"`
 	SoldAt              string      `json:"soldAt"`
-	SalePrice       *float64 `json:"salePrice"`
-	StorageLocation string   `json:"storageLocation"`
-	Condition       string   `json:"condition"`
-	MintageYear     int      `json:"mintageYear"`
+	SalePrice           *float64    `json:"salePrice"`
+	StorageLocation     string      `json:"storageLocation"`
+	Condition           string      `json:"condition"`
+	MintageYear         int         `json:"mintageYear"`
 }
 
 type SpotQuote struct {
-	Base       string             `json:"base"`
-	Timestamp  string             `json:"timestamp"`
-	FetchedAt  string             `json:"fetchedAt"`
-	Rates      map[string]float64 `json:"rates"`
-	CacheHit   bool               `json:"cacheHit"`
-	IsStale    bool               `json:"isStale"`
-	IsPartial  bool               `json:"isPartial"`
-	ErrorCode  string             `json:"errorCode,omitempty"`
+	Base      string             `json:"base"`
+	Timestamp string             `json:"timestamp"`
+	FetchedAt string             `json:"fetchedAt"`
+	Rates     map[string]float64 `json:"rates"`
+	CacheHit  bool               `json:"cacheHit"`
+	IsStale   bool               `json:"isStale"`
+	IsPartial bool               `json:"isPartial"`
+	ErrorCode string             `json:"errorCode,omitempty"`
 }
 
 type AllocationSlice struct {
@@ -401,11 +413,11 @@ type AllocationBreakdown struct {
 }
 
 type MetalAverageCost struct {
-	Metal                  MetalSymbol `json:"metal"`
-	TotalPurchaseCost      float64     `json:"totalPurchaseCost"`
-	TotalFineWeightGrams   float64     `json:"totalFineWeightGrams"`
-	AvgCostPerKgFine       float64     `json:"avgCostPerKgFine"`
-	HeldUnits              int         `json:"heldUnits"`
+	Metal                MetalSymbol `json:"metal"`
+	TotalPurchaseCost    float64     `json:"totalPurchaseCost"`
+	TotalFineWeightGrams float64     `json:"totalFineWeightGrams"`
+	AvgCostPerKgFine     float64     `json:"avgCostPerKgFine"`
+	HeldUnits            int         `json:"heldUnits"`
 }
 
 type WhatIfRequest struct {
@@ -426,22 +438,22 @@ type WhatIfPreview struct {
 }
 
 type PnLContribution struct {
-	Dimension        string  `json:"dimension"`
-	Key              string  `json:"key"`
-	Label            string  `json:"label"`
-	UnrealizedChange float64 `json:"unrealizedChange"`
-	RealizedProfit   float64 `json:"realizedProfit"`
-	NetChange        float64 `json:"netChange"`
+	Dimension         string  `json:"dimension"`
+	Key               string  `json:"key"`
+	Label             string  `json:"label"`
+	UnrealizedChange  float64 `json:"unrealizedChange"`
+	RealizedProfit    float64 `json:"realizedProfit"`
+	NetChange         float64 `json:"netChange"`
 	PercentOfTotalNet float64 `json:"percentOfTotalNet"`
 }
 
 type PnLContributionReport struct {
-	DisplayCurrency  Currency          `json:"displayCurrency"`
-	TotalUnrealized  float64           `json:"totalUnrealized"`
-	TotalRealized    float64           `json:"totalRealized"`
-	TotalNet         float64           `json:"totalNet"`
-	ByMetal          []PnLContribution `json:"byMetal"`
-	ByGroup          []PnLContribution `json:"byGroup"`
+	DisplayCurrency Currency          `json:"displayCurrency"`
+	TotalUnrealized float64           `json:"totalUnrealized"`
+	TotalRealized   float64           `json:"totalRealized"`
+	TotalNet        float64           `json:"totalNet"`
+	ByMetal         []PnLContribution `json:"byMetal"`
+	ByGroup         []PnLContribution `json:"byGroup"`
 }
 
 // MonthlyPage is the Monthly tab payload (one quote load for breakdown + contribution).

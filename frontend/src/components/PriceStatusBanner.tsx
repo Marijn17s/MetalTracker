@@ -1,4 +1,5 @@
 import {useLocale} from '../i18n/LocaleContext';
+import {formatDateTime} from '../utils/format';
 
 interface PriceStatusBannerProps {
   quoteAsOf?: string;
@@ -6,15 +7,6 @@ interface PriceStatusBannerProps {
   quoteIsPartial?: boolean;
   valuationApproximate?: boolean;
   priceErrorCode?: string;
-}
-
-function formatAsOf(value?: string): string {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return date.toLocaleString();
 }
 
 export function PriceStatusBanner({
@@ -32,7 +24,7 @@ export function PriceStatusBanner({
     }
     return (
       <p className="price-status price-status-ok">
-        {t('price.asOf', {when: formatAsOf(quoteAsOf)})}
+        {t('price.asOf', {when: formatDateTime(quoteAsOf)})}
       </p>
     );
   }
@@ -50,7 +42,7 @@ export function PriceStatusBanner({
     parts.push(t('price.partial'));
   }
   if (quoteAsOf) {
-    parts.push(t('price.lastQuote', {when: formatAsOf(quoteAsOf)}));
+    parts.push(t('price.lastQuote', {when: formatDateTime(quoteAsOf)}));
   }
 
   return (

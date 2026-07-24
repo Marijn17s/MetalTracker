@@ -1,5 +1,6 @@
 import {FormEvent, KeyboardEvent, useEffect, useRef, useState} from 'react';
 import {CreateInvestment, ListDealerSummaries} from '../../wailsjs/go/main/App';
+import {showToast} from '../components/Toast';
 import {useLocale} from '../i18n/LocaleContext';
 import {
   AddInvestmentPrefill,
@@ -20,7 +21,24 @@ interface AddInvestmentProps {
   onPrefillConsumed?: () => void;
 }
 
-function emptyLine(): InvestmentLineInput {
+type NumericInputValue = number | '';
+
+type InvestmentLineForm = Omit<
+  InvestmentLineInput,
+  'weight' | 'purity' | 'quantity' | 'totalPurchasePrice' | 'mintageYear'
+> & {
+  weight: NumericInputValue;
+  purity: NumericInputValue;
+  quantity: NumericInputValue;
+  totalPurchasePrice: NumericInputValue;
+  mintageYear: NumericInputValue;
+};
+
+function numericInputValue(value: string): NumericInputValue {
+  return value === '' ? '' : Number(value);
+}
+
+function emptyLine(): InvestmentLineForm {
   return {
     assetClass: 'precious_metal',
     metal: 'XAU',
@@ -34,13 +52,14 @@ function emptyLine(): InvestmentLineInput {
     totalPurchasePrice: 0,
     totalSpotWorth: 0,
     spotWorthProvided: false,
+    isGift: false,
     storageLocation: '',
     condition: '',
     mintageYear: 0,
   };
 }
 
-function lineFromPrefill(prefill: AddInvestmentPrefill): InvestmentLineInput {
+function lineFromPrefill(prefill: AddInvestmentPrefill): InvestmentLineForm {
   return {
     ...emptyLine(),
     metal: prefill.metal,
@@ -70,10 +89,9 @@ export function AddInvestment({onCreated, prefill, onPrefillConsumed}: AddInvest
   const [currency, setCurrency] = useState<Currency>('EUR');
   const [dealer, setDealer] = useState('');
   const [notes, setNotes] = useState('');
-  const [lines, setLines] = useState<InvestmentLineInput[]>([emptyLine()]);
+  const [lines, setLines] = useState<InvestmentLineForm[]>([emptyLine()]);
   const [dealers, setDealers] = useState<DealerSummary[]>([]);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [busy, setBusy] = useState(false);
   const purchaseDateRef = useRef<HTMLInputElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -91,11 +109,12 @@ export function AddInvestment({onCreated, prefill, onPrefillConsumed}: AddInvest
   useEffect(() => {
     if (!prefill) return;
     setLines([lineFromPrefill(prefill)]);
-    setSuccess(t('add.prefilled'));
+    const successMessage = t('add.prefilled');
+    showToast({message: successMessage});
     onPrefillConsumed?.();
   }, [prefill, onPrefillConsumed, t]);
 
-  function updateLine(index: number, patch: Partial<InvestmentLineInput>) {
+  function updateLine(index: number, patch: Partial<InvestmentLineForm>) {
     setLines((current) => current.map((line, lineIndex) => (
       lineIndex === index ? {...line, ...patch} : line
     )));
@@ -108,7 +127,6 @@ export function AddInvestment({onCreated, prefill, onPrefillConsumed}: AddInvest
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError('');
-    setSuccess('');
     setBusy(true);
 
     const request: CreateInvestmentRequest = {
@@ -118,6 +136,11 @@ export function AddInvestment({onCreated, prefill, onPrefillConsumed}: AddInvest
       notes,
       lines: lines.map((line) => ({
         ...line,
+        weight: Number(line.weight),
+        purity: Number(line.purity),
+        quantity: Number(line.quantity),
+        totalPurchasePrice: line.isGift ? 0 : Number(line.totalPurchasePrice),
+        mintageYear: line.mintageYear === '' ? 0 : Number(line.mintageYear),
         totalSpotWorth: 0,
         spotWorthProvided: false,
       })),
@@ -125,7 +148,8 @@ export function AddInvestment({onCreated, prefill, onPrefillConsumed}: AddInvest
 
     try {
       await CreateInvestment(request as never);
-      setSuccess(t('add.saved'));
+      const successMessage = t('add.saved');
+      showToast({message: successMessage});
       setLines([emptyLine()]);
       ListDealerSummaries()
         .then((result) => setDealers((result || []) as DealerSummary[]))
@@ -292,7 +316,7 @@ export function AddInvestment({onCreated, prefill, onPrefillConsumed}: AddInvest
                   min="0"
                   step="any"
                   value={line.weight}
-                  onChange={(event) => updateLine(index, {weight: Number(event.target.value)})}
+                  onChange={(event) => updateLine(index, {weight: numericInputValue(event.target.value)})}
                   required
                   enterKeyHint="next"
                 />
@@ -316,11 +340,11 @@ export function AddInvestment({onCreated, prefill, onPrefillConsumed}: AddInvest
                   min="0"
                   step="any"
                   value={line.purity}
-                  onChange={(event) => updateLine(index, {purity: Number(event.target.value)})}
+                  onChange={(event) => updateLine(index, {purity: numericInputValue(event.target.value)})}
                   required
                   enterKeyHint="next"
                 />
-                {isUnusualPurity(line.purity) && (
+                {line.purity !== '' && isUnusualPurity(line.purity) && (
                   <span className="field-warning">{t('add.unusualPurity')}</span>
                 )}
               </label>
@@ -331,20 +355,37 @@ export function AddInvestment({onCreated, prefill, onPrefillConsumed}: AddInvest
                   min="1"
                   step="1"
                   value={line.quantity}
-                  onChange={(event) => updateLine(index, {quantity: Number(event.target.value)})}
+                  onChange={(event) => updateLine(index, {quantity: numericInputValue(event.target.value)})}
                   required
                   enterKeyHint="next"
                 />
               </label>
+              <label className={`gift-toggle span-2${line.isGift ? ' is-active' : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={line.isGift}
+                  onChange={(event) => updateLine(index, {
+                    isGift: event.target.checked,
+                    totalPurchasePrice: event.target.checked ? 0 : line.totalPurchasePrice,
+                  })}
+                />
+                <span className="gift-toggle-copy">
+                  <strong>{t('add.isGift')}</strong>
+                  <span>{t('add.giftHelp')}</span>
+                </span>
+              </label>
               <label>
-                <FieldLabel required>{t('add.totalPurchasePrice')}</FieldLabel>
+                <FieldLabel required={!line.isGift}>{t('add.totalPurchasePrice')}</FieldLabel>
                 <input
                   type="number"
                   min="0"
                   step="any"
-                  value={line.totalPurchasePrice || ''}
-                  onChange={(event) => updateLine(index, {totalPurchasePrice: Number(event.target.value)})}
-                  required
+                  value={line.isGift ? 0 : line.totalPurchasePrice}
+                  onChange={(event) => updateLine(index, {
+                    totalPurchasePrice: numericInputValue(event.target.value),
+                  })}
+                  required={!line.isGift}
+                  disabled={line.isGift}
                   enterKeyHint={index === lines.length - 1 ? 'done' : 'next'}
                 />
               </label>
@@ -391,8 +432,10 @@ export function AddInvestment({onCreated, prefill, onPrefillConsumed}: AddInvest
                   type="number"
                   min="0"
                   step="1"
-                  value={line.mintageYear || ''}
-                  onChange={(event) => updateLine(index, {mintageYear: Number(event.target.value) || 0})}
+                  value={line.mintageYear}
+                  onChange={(event) => updateLine(index, {
+                    mintageYear: numericInputValue(event.target.value),
+                  })}
                   placeholder={t('add.optional')}
                   enterKeyHint="done"
                 />
@@ -412,7 +455,6 @@ export function AddInvestment({onCreated, prefill, onPrefillConsumed}: AddInvest
         </datalist>
 
         {error && <p className="error-text">{error}</p>}
-        {success && <p className="success-text">{success}</p>}
 
         <div className="sticky-form-actions">
           <button

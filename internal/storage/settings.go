@@ -51,6 +51,8 @@ func (database *DB) GetSettings() (domain.AppSettings, error) {
 			if value == string(domain.UIThemeLight) || value == string(domain.UIThemeDark) {
 				settings.UITheme = domain.UITheme(value)
 			}
+		case "skipped_update_version":
+			settings.SkippedUpdateVersion = value
 		}
 	}
 	return settings, rows.Err()
@@ -64,13 +66,14 @@ func (database *DB) UpdateSettings(settings domain.AppSettings) error {
 		settings.UITheme = domain.UIThemeDark
 	}
 	pairs := map[string]string{
-		"display_currency":   string(settings.DisplayCurrency),
-		"price_source":       string(settings.PriceSource),
-		"metalprice_api_key": settings.MetalpriceAPIKey,
-		"middleman_base_url": settings.MiddlemanBaseURL,
-		"auto_lock_minutes":  strconv.Itoa(settings.AutoLockMinutes),
-		"spot_price_unit":    string(settings.SpotPriceUnit),
-		"ui_theme":           string(settings.UITheme),
+		"display_currency":       string(settings.DisplayCurrency),
+		"price_source":           string(settings.PriceSource),
+		"metalprice_api_key":     settings.MetalpriceAPIKey,
+		"middleman_base_url":     settings.MiddlemanBaseURL,
+		"auto_lock_minutes":      strconv.Itoa(settings.AutoLockMinutes),
+		"spot_price_unit":        string(settings.SpotPriceUnit),
+		"ui_theme":               string(settings.UITheme),
+		"skipped_update_version": settings.SkippedUpdateVersion,
 	}
 	tx, err := database.conn.Begin()
 	if err != nil {

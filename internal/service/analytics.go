@@ -81,9 +81,9 @@ func (services *AppServices) GetMetalAverageCosts(ctx context.Context) ([]domain
 	}
 
 	type accumulator struct {
-		cost  float64
-		fine  float64
-		held  int
+		cost float64
+		fine float64
+		held int
 	}
 	byMetal := map[domain.MetalSymbol]*accumulator{}
 	for _, unit := range units {
@@ -96,9 +96,12 @@ func (services *AppServices) GetMetalAverageCosts(ctx context.Context) ([]domain
 			entry = &accumulator{}
 			byMetal[unit.Metal] = entry
 		}
+		entry.held++
+		if unit.IsGift {
+			continue
+		}
 		entry.cost += valued.PurchasePrice
 		entry.fine += valued.FineWeightGrams
-		entry.held++
 	}
 
 	result := make([]domain.MetalAverageCost, 0, len(byMetal))
@@ -107,7 +110,7 @@ func (services *AppServices) GetMetalAverageCosts(ctx context.Context) ([]domain
 			Metal:                metal,
 			TotalPurchaseCost:    entry.cost,
 			TotalFineWeightGrams: entry.fine,
-			AvgCostPerKgFine: domain.AvgCostPerKgFine(entry.cost, entry.fine),
+			AvgCostPerKgFine:     domain.AvgCostPerKgFine(entry.cost, entry.fine),
 			HeldUnits:            entry.held,
 		})
 	}
@@ -255,7 +258,7 @@ func buildPnLContribution(
 			!soldAt.Before(start) && !soldAt.After(end)
 		if soldInRange && unit.SalePrice != nil {
 			salePrice, _, _ := price.ConvertAmount(*unit.SalePrice, unit.Currency, settings.DisplayCurrency, endQuote)
-			purchasePrice, _, _ := price.ConvertAmount(unit.PurchasePrice, unit.Currency, settings.DisplayCurrency, endQuote)
+			purchasePrice, _, _ := price.ConvertAmount(unit.CostBasis(), unit.Currency, settings.DisplayCurrency, endQuote)
 			realized := salePrice - purchasePrice
 			metalBucket.realized += realized
 			groupBucket.realized += realized

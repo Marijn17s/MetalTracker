@@ -109,6 +109,7 @@ func (services *AppServices) ListGroupedHoldings(ctx context.Context, filter dom
 	}
 
 	groups := map[string]*domain.GroupedHolding{}
+	paidFineWeightByProduct := map[string]float64{}
 	orderedProductKeys := make([]string, 0)
 
 	for _, unit := range units {
@@ -147,8 +148,11 @@ func (services *AppServices) ListGroupedHoldings(ctx context.Context, filter dom
 		group.TotalCurrentWorth += valued.CurrentSpotWorth
 		group.TotalProfit += valued.TotalProfit
 		group.TotalUnrealizedProfit += valued.TotalProfit
-		group.HeldPurchasePrice += valued.PurchasePrice
 		group.HeldFineWeightGrams += valued.FineWeightGrams
+		if !unit.IsGift {
+			group.HeldPurchasePrice += valued.PurchasePrice
+			paidFineWeightByProduct[unit.ProductKey] += valued.FineWeightGrams
+		}
 		if valued.ValuationApproximate {
 			group.ValuationApproximate = true
 		}
@@ -158,8 +162,9 @@ func (services *AppServices) ListGroupedHoldings(ctx context.Context, filter dom
 	for _, productKey := range orderedProductKeys {
 		group := groups[productKey]
 		group.TotalProfitPct = domain.Percentage(group.TotalProfit, group.TotalPurchasePrice)
-		group.AvgCostPerKgFine = domain.AvgCostPerKgFine(group.TotalPurchasePrice, group.TotalFineWeightGrams)
-		group.BreakEvenSpotPerKg = domain.BreakEvenSpotPerKg(group.HeldPurchasePrice, group.HeldFineWeightGrams)
+		paidFineWeight := paidFineWeightByProduct[productKey]
+		group.AvgCostPerKgFine = domain.AvgCostPerKgFine(group.TotalPurchasePrice, paidFineWeight)
+		group.BreakEvenSpotPerKg = domain.BreakEvenSpotPerKg(group.HeldPurchasePrice, paidFineWeight)
 		result = append(result, *group)
 	}
 	return result, nil
@@ -379,6 +384,7 @@ func (services *AppServices) UpdateHoldingUnit(request domain.UpdateHoldingUnitR
 		ProductKey:          productKey,
 		PurchasePrice:       request.PurchasePrice,
 		SpotWorthAtPurchase: request.SpotWorthAtPurchase,
+		IsGift:              request.IsGift,
 		PurchasedAt:         purchasedAt.Format(time.RFC3339),
 		Status:              status,
 		Notes:               request.Notes,
@@ -386,6 +392,9 @@ func (services *AppServices) UpdateHoldingUnit(request domain.UpdateHoldingUnitR
 		StorageLocation:     strings.TrimSpace(request.StorageLocation),
 		Condition:           strings.TrimSpace(request.Condition),
 		MintageYear:         request.MintageYear,
+	}
+	if unit.IsGift {
+		unit.PurchasePrice = 0
 	}
 
 	if status == domain.UnitStatusSold {

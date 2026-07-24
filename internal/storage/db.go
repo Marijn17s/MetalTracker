@@ -113,6 +113,7 @@ func allMigrations() []migration {
 		{version: 2, name: "settings_defaults_v2", up: migrateV2},
 		{version: 3, name: "inventory_enrichment", up: migrateV3},
 		{version: 4, name: "soft_delete_units", up: migrateV4},
+		{version: 5, name: "gift_holdings", up: migrateV5},
 	}
 }
 
@@ -236,4 +237,9 @@ func migrateV4(conn *sql.DB) error {
 		}
 	}
 	return nil
+}
+
+func migrateV5(conn *sql.DB) error {
+	_, err := conn.Exec(`ALTER TABLE holding_units ADD COLUMN is_gift INTEGER NOT NULL DEFAULT 0`)
+	return err
 }

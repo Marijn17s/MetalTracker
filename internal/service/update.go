@@ -38,7 +38,7 @@ func (services *AppServices) CheckForUpdates(ctx context.Context) (domain.Update
 	return result, nil
 }
 
-func (services *AppServices) InstallUpdate(ctx context.Context) (string, error) {
+func (services *AppServices) InstallUpdate(ctx context.Context, onProgress update.ProgressFunc) (string, error) {
 	services.mu.Lock()
 	pending := services.pendingUpdate
 	services.mu.Unlock()
@@ -52,7 +52,7 @@ func (services *AppServices) InstallUpdate(ctx context.Context) (string, error) 
 	}
 
 	client := update.NewClient()
-	if err := client.Apply(ctx, pending); err != nil {
+	if err := client.Apply(ctx, pending, onProgress); err != nil {
 		return "", apperr.New(apperr.CodeUpdateUnavailable, "Could not install the update. Try downloading the latest release from GitHub instead.")
 	}
 

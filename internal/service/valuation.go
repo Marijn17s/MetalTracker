@@ -36,7 +36,7 @@ func (services *AppServices) loadValuationContext(ctx context.Context) (valuatio
 }
 
 func valueUnitInDisplayCurrency(unit domain.HoldingUnit, quote price.Quote, displayCurrency domain.Currency) domain.UnitValuation {
-	purchasePrice, fxRate, fxOK := price.ConvertAmount(unit.PurchasePrice, unit.Currency, displayCurrency, quote)
+	purchasePrice, fxRate, fxOK := price.ConvertAmount(unit.CostBasis(), unit.Currency, displayCurrency, quote)
 	spotAtPurchase, _, _ := price.ConvertAmount(unit.SpotWorthAtPurchase, unit.Currency, displayCurrency, quote)
 
 	converted := unit
@@ -69,11 +69,12 @@ func valueUnitInDisplayCurrency(unit domain.HoldingUnit, quote price.Quote, disp
 	}
 	// Keep original currency on the unit for reference; monetary fields are display-converted.
 	valuation.Currency = unit.Currency
+	valuation.IsGift = unit.IsGift
 
 	endDate := time.Now().UTC().Format("2006-01-02")
 	if unit.Status == domain.UnitStatusSold && unit.SoldAt != "" {
 		endDate = unit.SoldAt
-	} else if unit.Status != domain.UnitStatusSold {
+	} else if unit.Status != domain.UnitStatusSold && !unit.IsGift {
 		valuation.BreakEvenSpotPerKg = domain.BreakEvenSpotPerKg(
 			valuation.PurchasePrice,
 			valuation.FineWeightGrams,

@@ -1,4 +1,4 @@
-import {formatMoney} from './format';
+import {formatDate, formatMoney} from './format';
 
 export function formatChartCurrency(value: number, currency: string): string {
   return new Intl.NumberFormat(undefined, {
@@ -34,11 +34,7 @@ export function formatChartTooltipLabel(value: string | number): string {
   if (text.length === 7) {
     return parsed.toLocaleString(undefined, {month: 'long', year: 'numeric'});
   }
-  return parsed.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  return formatDate(text);
 }
 
 export function chartTooltipFormatter(currency: string) {

@@ -3,7 +3,8 @@ import {INTL_LOCALE, translate, TranslationKey} from './translations';
 
 interface LocaleContextValue {
   t: (key: TranslationKey, replacements?: Record<string, string | number>) => string;
-  intl: string;
+  /** Undefined means formatting follows the OS/runtime locale. */
+  intl: string | undefined;
 }
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);

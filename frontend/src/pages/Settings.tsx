@@ -16,6 +16,7 @@ import {
 } from '../../wailsjs/go/main/App';
 import {ConfirmDialog} from '../components/ConfirmDialog';
 import {isCompletePin, PinInput} from '../components/PinInput';
+import {UpdateDialog} from '../components/UpdateDialog';
 import {useLocale} from '../i18n/LocaleContext';
 import {
   AppSettings,
@@ -31,6 +32,7 @@ import {
 import {formatAppError, formatUserMessage, isUserCancelled} from '../utils/errors';
 import {formatDate, formatWeight, formLabel, metalLabel} from '../utils/format';
 import {applyTheme} from '../utils/theme';
+import {subscribeUpdateDownloadProgress, UpdateDownloadProgress} from '../utils/updateProgress';
 
 interface SettingsProps {
   onInventoryChanged?: () => void;
@@ -58,6 +60,7 @@ export function Settings({onInventoryChanged, onVaultLocked}: SettingsProps) {
   const [updateMessage, setUpdateMessage] = useState('');
   const [updateError, setUpdateError] = useState('');
   const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState<UpdateDownloadProgress | null>(null);
   const [backupMessage, setBackupMessage] = useState('');
   const [backupError, setBackupError] = useState('');
   const [backupPrompt, setBackupPrompt] = useState<'backup' | 'verify' | 'restore' | 'kit' | null>(null);
@@ -78,6 +81,7 @@ export function Settings({onInventoryChanged, onVaultLocked}: SettingsProps) {
           ...loaded,
           spotPriceUnit: loaded.spotPriceUnit || 'troy_oz',
           uiTheme: loaded.uiTheme || 'dark',
+          skippedUpdateVersion: loaded.skippedUpdateVersion || '',
         });
       })
       .catch((err) => setError(formatAppError(err)));
@@ -109,12 +113,33 @@ export function Settings({onInventoryChanged, onVaultLocked}: SettingsProps) {
   async function handleInstallUpdate() {
     setUpdateBusy(true);
     setUpdateError('');
+    setUpdateProgress(null);
+    const unsubscribe = subscribeUpdateDownloadProgress(setUpdateProgress);
     try {
       await InstallUpdate();
     } catch (err) {
       setUpdateError(formatAppError(err));
       setUpdateBusy(false);
+      setUpdateProgress(null);
       setShowUpdateConfirm(false);
+    } finally {
+      unsubscribe();
+    }
+  }
+
+  async function handleSkipUpdate() {
+    if (!settings || !updateCheck?.available || updateBusy) return;
+    setUpdateError('');
+    try {
+      const nextSettings: AppSettings = {
+        ...settings,
+        skippedUpdateVersion: updateCheck.latestVersion,
+      };
+      await UpdateSettings(nextSettings as never);
+      setSettings(nextSettings);
+      setShowUpdateConfirm(false);
+    } catch (err) {
+      setUpdateError(formatAppError(err));
     }
   }
 
@@ -556,23 +581,21 @@ export function Settings({onInventoryChanged, onVaultLocked}: SettingsProps) {
           )}
         </div>
         {updateMessage && <p className="success-text">{updateMessage}</p>}
-        {updateError && <p className="error-text">{updateError}</p>}
+        {updateError && !showUpdateConfirm && <p className="error-text">{updateError}</p>}
       </section>
 
       {showUpdateConfirm && updateCheck?.available && (
-        <ConfirmDialog
-          title={t('settings.updateConfirmTitle')}
-          message={t('settings.updateConfirmBody', {version: updateCheck.latestVersion})}
-          confirmLabel={updateBusy ? t('settings.installingUpdate') : t('settings.updateConfirmAction')}
-          cancelLabel={t('common.cancel')}
+        <UpdateDialog
+          version={updateCheck.latestVersion}
+          releaseNotes={updateCheck.releaseNotes}
           busy={updateBusy}
-          onCancel={() => {
-            if (updateBusy) return;
-            setShowUpdateConfirm(false);
+          progress={updateProgress}
+          error={updateError}
+          onLater={() => {
+            if (!updateBusy) setShowUpdateConfirm(false);
           }}
-          onConfirm={() => {
-            void handleInstallUpdate();
-          }}
+          onSkip={() => void handleSkipUpdate()}
+          onInstall={() => void handleInstallUpdate()}
         />
       )}
 
