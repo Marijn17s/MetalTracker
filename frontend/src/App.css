@@ -784,14 +784,74 @@ input:focus, select:focus, textarea:focus, .search-input:focus {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.holdings-filters {
+.holdings-filters,
+.holdings-toolbar {
   display: grid;
   gap: 0.85rem;
+}
+
+.holdings-toolbar {
+  gap: 0.7rem;
+  padding: 0.85rem 1rem;
+}
+
+.holdings-toolbar-main {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.holdings-toolbar-search {
+  flex: 1 1 14rem;
+  min-width: 10rem;
+  padding: 0.55rem 0.8rem;
+}
+
+.holdings-sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.holdings-sort-field {
+  margin: 0;
+}
+
+.holdings-sort-field select {
+  width: auto;
+  min-width: 8.5rem;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.82rem;
+  border-radius: 999px;
+}
+
+.holdings-sort-direction {
+  min-width: 2.2rem;
+  padding-left: 0.55rem;
+  padding-right: 0.55rem;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.holdings-filters-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 1rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--glass-border);
 }
 
 .filter-group {
   display: grid;
   gap: 0.4rem;
+}
+
+.filter-group-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
 }
 
 .filter-label {
@@ -812,8 +872,8 @@ input:focus, select:focus, textarea:focus, .search-input:focus {
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
-  padding-top: 0.25rem;
-  border-top: 1px solid var(--glass-border);
+  width: 100%;
+  padding-top: 0.15rem;
 }
 
 .holdings-list {

@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 import {GetHoldingsFilterOptions, ListSoldArchive} from '../../wailsjs/go/main/App';
+import {InventoryToolbar, SortDirection} from '../components/InventoryToolbar';
 import {useLocale} from '../i18n/LocaleContext';
 import {Form, MetalSymbol, UnitValuation} from '../types';
 import {formatAppError} from '../utils/errors';
@@ -21,10 +22,48 @@ interface FilterOptions {
   brands: string[];
 }
 
-function toggleValue<T extends string>(values: T[], value: T): T[] {
-  return values.includes(value)
-    ? values.filter((item) => item !== value)
-    : [...values, value];
+type SortKey = 'profitPct' | 'profit' | 'value' | 'fineWeight' | 'name' | 'daysHeld' | 'soldAt';
+
+function unitDisplayName(unit: UnitValuation): string {
+  return unit.productName || `${unit.metal} ${unit.form}`;
+}
+
+function compareUnits(
+  left: UnitValuation,
+  right: UnitValuation,
+  sortBy: SortKey,
+  sortDirection: SortDirection,
+): number {
+  let comparison = 0;
+  switch (sortBy) {
+    case 'profitPct':
+      comparison = (left.totalProfitPct || 0) - (right.totalProfitPct || 0);
+      break;
+    case 'profit':
+      comparison = (left.totalProfit || 0) - (right.totalProfit || 0);
+      break;
+    case 'value':
+      comparison = (left.salePrice ?? left.currentSpotWorth ?? 0) - (right.salePrice ?? right.currentSpotWorth ?? 0);
+      break;
+    case 'fineWeight':
+      comparison = (left.fineWeightGrams || 0) - (right.fineWeightGrams || 0);
+      break;
+    case 'daysHeld':
+      comparison = (left.daysHeld || 0) - (right.daysHeld || 0);
+      break;
+    case 'soldAt':
+      comparison = (left.soldAt || '').localeCompare(right.soldAt || '');
+      break;
+    case 'name':
+      comparison = unitDisplayName(left).localeCompare(unitDisplayName(right), undefined, {
+        sensitivity: 'base',
+      });
+      break;
+  }
+  if (comparison === 0) {
+    comparison = left.id.localeCompare(right.id);
+  }
+  return sortDirection === 'asc' ? comparison : -comparison;
 }
 
 export function SoldArchive({onOpenUnit}: SoldArchiveProps) {
@@ -33,10 +72,23 @@ export function SoldArchive({onOpenUnit}: SoldArchiveProps) {
   const [metals, setMetals] = useState<MetalSymbol[]>([]);
   const [forms, setForms] = useState<Form[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<SortKey>('soldAt');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [options, setOptions] = useState<FilterOptions>({brands: []});
   const [units, setUnits] = useState<UnitValuation[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+
+  const activeFilterCount = metals.length + forms.length + brands.length;
+  const sortOptions = [
+    {value: 'soldAt' as const, label: t('sold.sortSoldDate')},
+    {value: 'profitPct' as const, label: t('holdings.sortProfitPct')},
+    {value: 'profit' as const, label: t('holdings.sortProfit')},
+    {value: 'value' as const, label: t('sold.sortSalePrice')},
+    {value: 'fineWeight' as const, label: t('holdings.sortFineWeight')},
+    {value: 'daysHeld' as const, label: t('sold.sortDaysHeld')},
+    {value: 'name' as const, label: t('holdings.sortName')},
+  ];
 
   useEffect(() => {
     GetHoldingsFilterOptions()
@@ -61,8 +113,13 @@ export function SoldArchive({onOpenUnit}: SoldArchiveProps) {
     return () => window.clearTimeout(handle);
   }, [search, metals, forms, brands]);
 
+  const sortedUnits = useMemo(
+    () => [...units].sort((left, right) => compareUnits(left, right, sortBy, sortDirection)),
+    [units, sortBy, sortDirection],
+  );
+
   const emptyMessage = useMemo(() => {
-    if (search || metals.length || forms.length || brands.length) {
+    if (search || activeFilterCount > 0) {
       return {
         title: t('sold.noMatchTitle'),
         body: t('sold.noMatchBody'),
@@ -72,7 +129,14 @@ export function SoldArchive({onOpenUnit}: SoldArchiveProps) {
       title: t('sold.emptyTitle'),
       body: t('sold.emptyBody'),
     };
-  }, [search, metals, forms, brands, t]);
+  }, [search, activeFilterCount, t]);
+
+  function clearFilters() {
+    setSearch('');
+    setMetals([]);
+    setForms([]);
+    setBrands([]);
+  }
 
   return (
     <div className="page-stack">
@@ -84,68 +148,30 @@ export function SoldArchive({onOpenUnit}: SoldArchiveProps) {
         </div>
       </header>
 
-      <section className="glass panel holdings-filters">
-        <input
-          className="search-input"
-          type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder={t('sold.search')}
-          aria-label={t('sold.search')}
-        />
-        <div className="filter-group">
-          <span className="filter-label">{t('sold.metal')}</span>
-          <div className="filter-chips">
-            {(['XAU', 'XAG'] as MetalSymbol[]).map((metal) => (
-              <button
-                key={metal}
-                type="button"
-                className={`range-chip ${metals.includes(metal) ? 'active' : ''}`}
-                onClick={() => setMetals((current) => toggleValue(current, metal))}
-              >
-                {metalLabel(metal)}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="filter-group">
-          <span className="filter-label">{t('sold.type')}</span>
-          <div className="filter-chips">
-            {(['bar', 'coin', 'other'] as Form[]).map((form) => (
-              <button
-                key={form}
-                type="button"
-                className={`range-chip ${forms.includes(form) ? 'active' : ''}`}
-                onClick={() => setForms((current) => toggleValue(current, form))}
-              >
-                {formLabel(form)}
-              </button>
-            ))}
-          </div>
-        </div>
-        {options.brands.length > 0 && (
-          <div className="filter-group">
-            <span className="filter-label">{t('sold.brand')}</span>
-            <div className="filter-chips">
-              {options.brands.map((brand) => (
-                <button
-                  key={brand}
-                  type="button"
-                  className={`range-chip ${brands.includes(brand) ? 'active' : ''}`}
-                  onClick={() => setBrands((current) => toggleValue(current, brand))}
-                >
-                  {brand}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </section>
+      <InventoryToolbar
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder={t('sold.search')}
+        metals={metals}
+        onMetalsChange={setMetals}
+        forms={forms}
+        onFormsChange={setForms}
+        brands={brands}
+        onBrandsChange={setBrands}
+        brandOptions={options.brands}
+        sortBy={sortBy}
+        onSortByChange={setSortBy}
+        sortDirection={sortDirection}
+        onSortDirectionChange={setSortDirection}
+        sortOptions={sortOptions}
+        resultCountLabel={t('sold.unitCount', {count: units.length})}
+        onClear={clearFilters}
+      />
 
       {error && <p className="error-text">{error}</p>}
       {loading && <p className="muted">{t('sold.loading')}</p>}
 
-      {!loading && units.length === 0 && (
+      {!loading && sortedUnits.length === 0 && (
         <div className="glass panel empty-state">
           <h2>{emptyMessage.title}</h2>
           <p className="muted">{emptyMessage.body}</p>
@@ -153,7 +179,7 @@ export function SoldArchive({onOpenUnit}: SoldArchiveProps) {
       )}
 
       <div className="holdings-list">
-        {units.map((unit) => {
+        {sortedUnits.map((unit) => {
           const moneyCurrency = unit.displayCurrency || unit.currency;
           return (
             <button

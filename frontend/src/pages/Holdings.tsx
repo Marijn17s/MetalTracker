@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 import {GetHoldingsFilterOptions, ListGroupedHoldings} from '../../wailsjs/go/main/App';
+import {InventoryToolbar, SortDirection} from '../components/InventoryToolbar';
 import {PriceStatusBanner} from '../components/PriceStatusBanner';
 import {useLocale} from '../i18n/LocaleContext';
 import {Form, GroupedHolding, MetalSymbol} from '../types';
@@ -23,10 +24,45 @@ interface FilterOptions {
   locations: string[];
 }
 
-function toggleValue<T extends string>(values: T[], value: T): T[] {
-  return values.includes(value)
-    ? values.filter((item) => item !== value)
-    : [...values, value];
+type SortKey = 'profitPct' | 'profit' | 'value' | 'fineWeight' | 'name' | 'heldCount';
+
+function groupDisplayName(group: GroupedHolding): string {
+  return group.productName || `${group.metal} ${group.form}`;
+}
+
+function compareGroups(
+  left: GroupedHolding,
+  right: GroupedHolding,
+  sortBy: SortKey,
+  sortDirection: SortDirection,
+): number {
+  let comparison = 0;
+  switch (sortBy) {
+    case 'profitPct':
+      comparison = (left.totalProfitPct || 0) - (right.totalProfitPct || 0);
+      break;
+    case 'profit':
+      comparison = (left.totalProfit || 0) - (right.totalProfit || 0);
+      break;
+    case 'value':
+      comparison = (left.totalCurrentWorth || 0) - (right.totalCurrentWorth || 0);
+      break;
+    case 'fineWeight':
+      comparison = (left.totalFineWeightGrams || 0) - (right.totalFineWeightGrams || 0);
+      break;
+    case 'heldCount':
+      comparison = (left.heldCount || 0) - (right.heldCount || 0);
+      break;
+    case 'name':
+      comparison = groupDisplayName(left).localeCompare(groupDisplayName(right), undefined, {
+        sensitivity: 'base',
+      });
+      break;
+  }
+  if (comparison === 0) {
+    comparison = left.productKey.localeCompare(right.productKey);
+  }
+  return sortDirection === 'asc' ? comparison : -comparison;
 }
 
 export function Holdings({onOpenGroup}: HoldingsProps) {
@@ -36,12 +72,22 @@ export function Holdings({onOpenGroup}: HoldingsProps) {
   const [forms, setForms] = useState<Form[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<SortKey>('profitPct');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [options, setOptions] = useState<FilterOptions>({brands: [], locations: []});
   const [groups, setGroups] = useState<GroupedHolding[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
   const activeFilterCount = metals.length + forms.length + brands.length + locations.length;
+  const sortOptions = [
+    {value: 'profitPct' as const, label: t('holdings.sortProfitPct')},
+    {value: 'profit' as const, label: t('holdings.sortProfit')},
+    {value: 'value' as const, label: t('holdings.sortValue')},
+    {value: 'fineWeight' as const, label: t('holdings.sortFineWeight')},
+    {value: 'name' as const, label: t('holdings.sortName')},
+    {value: 'heldCount' as const, label: t('holdings.sortHeldCount')},
+  ];
 
   useEffect(() => {
     GetHoldingsFilterOptions()
@@ -73,6 +119,11 @@ export function Holdings({onOpenGroup}: HoldingsProps) {
 
   const anyApproximate = groups.some((group) => group.valuationApproximate);
 
+  const sortedGroups = useMemo(
+    () => [...groups].sort((left, right) => compareGroups(left, right, sortBy, sortDirection)),
+    [groups, sortBy, sortDirection],
+  );
+
   const emptyMessage = useMemo(() => {
     if (search || activeFilterCount > 0) {
       return {
@@ -101,99 +152,30 @@ export function Holdings({onOpenGroup}: HoldingsProps) {
           <p className="eyebrow">{t('holdings.eyebrow')}</p>
           <h1>{t('holdings.title')}</h1>
         </div>
-        <input
-          className="search-input"
-          placeholder={t('holdings.search')}
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
       </header>
 
-      <section className="glass panel holdings-filters">
-        <div className="filter-group">
-          <span className="filter-label">{t('holdings.metal')}</span>
-          <div className="filter-chips">
-            {([
-              {value: 'XAU' as MetalSymbol, label: t('common.gold')},
-              {value: 'XAG' as MetalSymbol, label: t('common.silver')},
-            ]).map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                className={`range-chip ${metals.includes(item.value) ? 'active' : ''}`}
-                onClick={() => setMetals((current) => toggleValue(current, item.value))}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="filter-group">
-          <span className="filter-label">{t('holdings.type')}</span>
-          <div className="filter-chips">
-            {([
-              {value: 'bar' as Form, label: t('common.bar')},
-              {value: 'coin' as Form, label: t('common.coin')},
-              {value: 'other' as Form, label: t('common.other')},
-            ]).map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                className={`range-chip ${forms.includes(item.value) ? 'active' : ''}`}
-                onClick={() => setForms((current) => toggleValue(current, item.value))}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {options.brands.length > 0 && (
-          <div className="filter-group">
-            <span className="filter-label">{t('holdings.brand')}</span>
-            <div className="filter-chips">
-              {options.brands.map((brand) => (
-                <button
-                  key={brand}
-                  type="button"
-                  className={`range-chip ${brands.includes(brand) ? 'active' : ''}`}
-                  onClick={() => setBrands((current) => toggleValue(current, brand))}
-                >
-                  {brand}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {options.locations.length > 0 && (
-          <div className="filter-group">
-            <span className="filter-label">{t('holdings.location')}</span>
-            <div className="filter-chips">
-              {options.locations.map((location) => (
-                <button
-                  key={location}
-                  type="button"
-                  className={`range-chip ${locations.includes(location) ? 'active' : ''}`}
-                  onClick={() => setLocations((current) => toggleValue(current, location))}
-                >
-                  {location}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {(search || activeFilterCount > 0) && (
-          <div className="filter-actions">
-            <button type="button" className="btn btn-ghost" onClick={clearFilters}>
-              {t('holdings.clearFilters')}
-            </button>
-            <span className="muted small">{t('holdings.groupCount', {count: groups.length})}</span>
-          </div>
-        )}
-      </section>
+      <InventoryToolbar
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder={t('holdings.search')}
+        metals={metals}
+        onMetalsChange={setMetals}
+        forms={forms}
+        onFormsChange={setForms}
+        brands={brands}
+        onBrandsChange={setBrands}
+        brandOptions={options.brands}
+        locations={locations}
+        onLocationsChange={setLocations}
+        locationOptions={options.locations}
+        sortBy={sortBy}
+        onSortByChange={setSortBy}
+        sortDirection={sortDirection}
+        onSortDirectionChange={setSortDirection}
+        sortOptions={sortOptions}
+        resultCountLabel={t('holdings.groupCount', {count: groups.length})}
+        onClear={clearFilters}
+      />
 
       {error && <p className="error-text">{error}</p>}
       {anyApproximate && (
@@ -201,7 +183,7 @@ export function Holdings({onOpenGroup}: HoldingsProps) {
       )}
       {loading && <p className="muted">{t('holdings.loading')}</p>}
 
-      {!loading && groups.length === 0 && (
+      {!loading && sortedGroups.length === 0 && (
         <div className="glass panel empty-state">
           <h2>{emptyMessage.title}</h2>
           <p className="muted">{emptyMessage.body}</p>
@@ -209,7 +191,7 @@ export function Holdings({onOpenGroup}: HoldingsProps) {
       )}
 
       <div className="holdings-list">
-        {groups.map((group) => {
+        {sortedGroups.map((group) => {
           const moneyCurrency = group.displayCurrency || group.currency || 'EUR';
           return (
             <button
@@ -228,15 +210,15 @@ export function Holdings({onOpenGroup}: HoldingsProps) {
                   {group.brand || t('holdings.unknownBrand')} - {t('holdings.heldCount', {count: group.heldCount})}
                 </p>
               </div>
-            <div className="holding-metrics">
-              <strong>{formatMoney(group.totalCurrentWorth, moneyCurrency)}</strong>
-              <span className={profitClass(group.totalProfit)}>
-                {formatMoney(group.totalProfit, moneyCurrency)} ({formatPercent(group.totalProfitPct)})
-              </span>
-              <span className="muted small">
-                {t('holdings.unrealized', {amount: formatMoney(group.totalUnrealizedProfit || 0, moneyCurrency)})}
-              </span>
-            </div>
+              <div className="holding-metrics">
+                <strong>{formatMoney(group.totalCurrentWorth, moneyCurrency)}</strong>
+                <span className={profitClass(group.totalProfit)}>
+                  {formatMoney(group.totalProfit, moneyCurrency)} ({formatPercent(group.totalProfitPct)})
+                </span>
+                <span className="muted small">
+                  {t('holdings.unrealized', {amount: formatMoney(group.totalUnrealizedProfit || 0, moneyCurrency)})}
+                </span>
+              </div>
             </button>
           );
         })}
