@@ -303,23 +303,25 @@ type AppSettings struct {
 }
 
 type PortfolioSummary struct {
-	DisplayCurrency       Currency `json:"displayCurrency"`
-	TotalPurchaseCost     float64  `json:"totalPurchaseCost"`
-	TotalCurrentWorth     float64  `json:"totalCurrentWorth"`
-	TotalRealizedProfit   float64  `json:"totalRealizedProfit"`
-	TotalUnrealizedProfit float64  `json:"totalUnrealizedProfit"`
-	TotalProfit           float64  `json:"totalProfit"`
-	TotalProfitPct        float64  `json:"totalProfitPct"`
-	HeldUnits             int      `json:"heldUnits"`
-	SoldUnits             int      `json:"soldUnits"`
-	GoldSpotPerKg         float64  `json:"goldSpotPerKg"`
-	SilverSpotPerKg       float64  `json:"silverSpotPerKg"`
-	QuoteAsOf             string   `json:"quoteAsOf"`
-	QuoteIsStale          bool     `json:"quoteIsStale"`
-	QuoteIsPartial        bool     `json:"quoteIsPartial"`
-	QuoteCacheHit         bool     `json:"quoteCacheHit"`
-	ValuationApproximate  bool     `json:"valuationApproximate"`
-	PriceErrorCode        string   `json:"priceErrorCode,omitempty"`
+	DisplayCurrency           Currency `json:"displayCurrency"`
+	TotalPurchaseCost         float64  `json:"totalPurchaseCost"`
+	TotalCurrentWorth         float64  `json:"totalCurrentWorth"`
+	TotalRealizedProfit       float64  `json:"totalRealizedProfit"`
+	TotalUnrealizedProfit     float64  `json:"totalUnrealizedProfit"`
+	TotalProfit               float64  `json:"totalProfit"`
+	TotalProfitPct            float64  `json:"totalProfitPct"`
+	HeldUnits                 int      `json:"heldUnits"`
+	SoldUnits                 int      `json:"soldUnits"`
+	HeldGoldFineWeightGrams   float64  `json:"heldGoldFineWeightGrams"`
+	HeldSilverFineWeightGrams float64  `json:"heldSilverFineWeightGrams"`
+	GoldSpotPerKg             float64  `json:"goldSpotPerKg"`
+	SilverSpotPerKg           float64  `json:"silverSpotPerKg"`
+	QuoteAsOf                 string   `json:"quoteAsOf"`
+	QuoteIsStale              bool     `json:"quoteIsStale"`
+	QuoteIsPartial            bool     `json:"quoteIsPartial"`
+	QuoteCacheHit             bool     `json:"quoteCacheHit"`
+	ValuationApproximate      bool     `json:"valuationApproximate"`
+	PriceErrorCode            string   `json:"priceErrorCode,omitempty"`
 }
 
 type PortfolioHistoryPoint struct {

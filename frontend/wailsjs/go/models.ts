@@ -524,6 +524,8 @@ export namespace domain {
 	    totalProfitPct: number;
 	    heldUnits: number;
 	    soldUnits: number;
+	    heldGoldFineWeightGrams: number;
+	    heldSilverFineWeightGrams: number;
 	    goldSpotPerKg: number;
 	    silverSpotPerKg: number;
 	    quoteAsOf: string;
@@ -548,6 +550,8 @@ export namespace domain {
 	        this.totalProfitPct = source["totalProfitPct"];
 	        this.heldUnits = source["heldUnits"];
 	        this.soldUnits = source["soldUnits"];
+	        this.heldGoldFineWeightGrams = source["heldGoldFineWeightGrams"];
+	        this.heldSilverFineWeightGrams = source["heldSilverFineWeightGrams"];
 	        this.goldSpotPerKg = source["goldSpotPerKg"];
 	        this.silverSpotPerKg = source["silverSpotPerKg"];
 	        this.quoteAsOf = source["quoteAsOf"];

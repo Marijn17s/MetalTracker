@@ -215,6 +215,8 @@ export interface PortfolioSummary {
   totalProfitPct: number;
   heldUnits: number;
   soldUnits: number;
+  heldGoldFineWeightGrams: number;
+  heldSilverFineWeightGrams: number;
   goldSpotPerKg: number;
   silverSpotPerKg: number;
   quoteAsOf: string;

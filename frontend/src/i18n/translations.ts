@@ -45,6 +45,7 @@ const english = {
   'dashboard.totalPnl': 'Total P&L',
   'dashboard.units': 'Units',
   'dashboard.heldSold': '{held} held - {sold} sold',
+  'dashboard.heldMetalGrams': '{metal} {weight}',
   'dashboard.valueOverTime': 'Value over time',
   'dashboard.spotPrices': 'Spot prices',
   'dashboard.unrealized': 'Unrealized P&L (held)',

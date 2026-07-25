@@ -45,6 +45,7 @@ import {
   costPerSpotUnit,
   formatMoney,
   formatPercent,
+  formatWeight,
   metalLabel,
   profitClass,
   spotUnitLabel,
@@ -204,6 +205,26 @@ export function Dashboard({onNavigate}: DashboardProps) {
           <strong>
             {t('dashboard.heldSold', {held: summary.heldUnits, sold: summary.soldUnits})}
           </strong>
+          {(summary.heldGoldFineWeightGrams > 0 || summary.heldSilverFineWeightGrams > 0) && (
+            <p className="muted small">
+              {[
+                summary.heldGoldFineWeightGrams > 0
+                  ? t('dashboard.heldMetalGrams', {
+                      metal: t('common.gold'),
+                      weight: formatWeight(summary.heldGoldFineWeightGrams),
+                    })
+                  : null,
+                summary.heldSilverFineWeightGrams > 0
+                  ? t('dashboard.heldMetalGrams', {
+                      metal: t('common.silver'),
+                      weight: formatWeight(summary.heldSilverFineWeightGrams),
+                    })
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' - ')}
+            </p>
+          )}
         </article>
       </section>
 

@@ -70,6 +70,12 @@ func (services *AppServices) GetPortfolioSummary(ctx context.Context) (domain.Po
 			summary.HeldUnits++
 			summary.TotalCurrentWorth += valued.CurrentSpotWorth
 			summary.TotalUnrealizedProfit += valued.TotalProfit
+			switch unit.Metal {
+			case domain.MetalGold:
+				summary.HeldGoldFineWeightGrams += valued.FineWeightGrams
+			case domain.MetalSilver:
+				summary.HeldSilverFineWeightGrams += valued.FineWeightGrams
+			}
 		}
 	}
 
