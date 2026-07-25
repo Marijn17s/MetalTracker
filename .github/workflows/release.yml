@@ -102,6 +102,44 @@ jobs:
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
 
+      - name: Import macOS signing certificate
+        if: matrix.goos == 'darwin'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+        run: |
+          CERTIFICATE_PATH="$RUNNER_TEMP/developer-id-application.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/metaltracker-signing.keychain-db"
+
+          printf '%s' "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          security create-keychain -p "$APPLE_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$APPLE_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s \
+            -k "$APPLE_KEYCHAIN_PASSWORD" \
+            "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+
+          SIGNING_IDENTITY="$(
+            security find-identity -v -p codesigning "$KEYCHAIN_PATH" |
+              awk -F '"' '/Developer ID Application/ { print $2; exit }'
+          )"
+          if [ -z "$SIGNING_IDENTITY" ]; then
+            echo "Developer ID Application identity was not found" >&2
+            exit 1
+          fi
+          echo "MACOS_SIGNING_IDENTITY=$SIGNING_IDENTITY" >> "$GITHUB_ENV"
+
       - name: Set product version in wails.json
         shell: bash
         env:
@@ -145,6 +183,18 @@ jobs:
             wails build -platform "$PLATFORM" -ldflags "$LDFLAGS"
           fi
 
+      - name: Sign macOS application
+        if: matrix.goos == 'darwin'
+        shell: bash
+        run: |
+          codesign \
+            --force \
+            --timestamp \
+            --options runtime \
+            --sign "$MACOS_SIGNING_IDENTITY" \
+            build/bin/MetalTracker.app
+          codesign --verify --deep --strict --verbose=2 build/bin/MetalTracker.app
+
       - name: Package assets
         shell: bash
         run: |
@@ -175,6 +225,32 @@ jobs:
             tar -czf "dist/${{ matrix.asset }}" -C build/bin MetalTracker
           fi
           ls -la dist
+
+      - name: Sign and notarize macOS disk image
+        if: matrix.goos == 'darwin'
+        shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          DISK_IMAGE_PATH="dist/${{ matrix.asset }}"
+
+          codesign \
+            --force \
+            --timestamp \
+            --sign "$MACOS_SIGNING_IDENTITY" \
+            "$DISK_IMAGE_PATH"
+          codesign --verify --verbose=2 "$DISK_IMAGE_PATH"
+
+          xcrun notarytool submit "$DISK_IMAGE_PATH" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+
+          xcrun stapler staple "$DISK_IMAGE_PATH"
+          xcrun stapler validate "$DISK_IMAGE_PATH"
 
       - name: Upload dist
         uses: actions/upload-artifact@v4
