@@ -31,8 +31,9 @@ func main() {
 		OnStartup:        application.startup,
 		OnShutdown:       application.shutdown,
 		Linux: &linux.Options{
-			Icon:        appIcon,
-			ProgramName: "MetalTracker",
+			Icon:             appIcon,
+			ProgramName:      "MetalTracker",
+			WebviewGpuPolicy: linux.WebviewGpuPolicyNever,
 		},
 		Bind: []interface{}{
 			application,
