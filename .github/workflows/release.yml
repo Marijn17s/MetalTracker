@@ -195,6 +195,11 @@ jobs:
             build/bin/MetalTracker.app
           codesign --verify --deep --strict --verbose=2 build/bin/MetalTracker.app
 
+      - name: Install DMG packaging dependencies
+        if: matrix.goos == 'darwin'
+        working-directory: build/darwin
+        run: npm ci
+
       - name: Package assets
         shell: bash
         run: |
@@ -211,16 +216,10 @@ jobs:
               exit 1
             fi
           elif [ "${{ matrix.goos }}" = "darwin" ]; then
-            # Drag-to-Applications DMG only (no bare binary).
-            DMG_ROOT="$(mktemp -d)"
-            cp -R build/bin/MetalTracker.app "$DMG_ROOT/"
-            ln -s /Applications "$DMG_ROOT/Applications"
-            hdiutil create \
-              -volname "MetalTracker" \
-              -srcfolder "$DMG_ROOT" \
-              -ov -format UDZO \
+            # Styled drag-to-Applications DMG (create-dmg layout + custom background).
+            node build/darwin/package-dmg.mjs \
+              build/bin/MetalTracker.app \
               "dist/${{ matrix.asset }}"
-            rm -rf "$DMG_ROOT"
           else
             tar -czf "dist/${{ matrix.asset }}" -C build/bin MetalTracker
           fi

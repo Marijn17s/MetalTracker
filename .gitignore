@@ -16,6 +16,10 @@ frontend/package.json.md5
 # --- Wails / Go build output ---
 build/bin/
 build/darwin/Contents/
+build/darwin/dmg-background.png
+build/darwin/dmg-background@2x.png
+build/darwin/node_modules/
+dist/
 *.exe
 *.exe~
 *.dll
