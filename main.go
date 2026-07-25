@@ -24,6 +24,10 @@ func main() {
 		Height:    840,
 		MinWidth:  960,
 		MinHeight: 640,
+		// Fixes linux maximize bug
+		// See https://github.com/wailsapp/wails/issues/2431
+		MaxWidth:  8192,
+		MaxHeight: 8192,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
