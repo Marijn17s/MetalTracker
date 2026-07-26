@@ -1,6 +1,6 @@
 # Middleman price cache
 
-Small Go HTTP service that caches MetalpriceAPI quotes in SQLite and serves them to MetalTracker (and other clients).
+Small Go service that caches MetalpriceAPI quotes in SQLite and serves them to MetalTracker (and other clients). This helps to reduce the cost of your MetalPriceAPI subscription.
 
 ## Behavior
 
@@ -12,7 +12,7 @@ Small Go HTTP service that caches MetalpriceAPI quotes in SQLite and serves them
 
 | Path | Notes |
 |------|--------|
-| `GET /healthz` | Liveness |
+| `GET /healthz` | Health check |
 | `GET /v1/latest?base=EUR&currencies=XAU,XAG,USD` | Newest snapshot |
 | `GET /v1/{YYYY-MM-DD}?base=&currencies=` | Last snapshot that day (lazy-fills past days) |
 | `GET /v1/timeframe?base=&currencies=&start_date=&end_date=` | One point per day in range |
@@ -23,14 +23,14 @@ Response shape matches MetalTracker’s `MiddlemanProvider` (`base`, `timestamp`
 
 | Variable | Default | Meaning |
 |----------|---------|---------|
-| `METALPRICE_API_KEY` | _(required)_ | Upstream key (paid plan with `unit=kilogram`) |
+| `METALPRICE_API_KEY` | _(required)_ | Your MetalPriceAPI key |
 | `LISTEN_ADDR` | `:8080` | Bind address |
 | `DB_PATH` | `/data/prices.db` in Docker, else `data/prices.db` | SQLite path |
 | `POLL_INTERVAL` | `1h` | Hourly append interval |
 | `MIDDLEMAN_API_KEY` | _(empty)_ | If set, require `X-API-Key` or `api_key` on `/v1/*` |
 | `MIDDLEMAN_HOST_PORT` | `8080` | Host port in Compose |
 
-## Docker deployment (recommended)
+## Docker deployment
 
 ```bash
 cd middleman
@@ -51,16 +51,12 @@ SQLite lives in the Docker volume `middleman-data` at `/data/prices.db`.
 
 ### Migrate the DB to another host
 
-1. `docker compose stop`
+1. Stop the docker container
 2. Copy the volume file, e.g.  
    `docker run --rm -v middleman_middleman-data:/data -v ${PWD}:/backup alpine tar czf /backup/prices-backup.tar.gz -C /data .`
 3. On the new host: restore into a volume mounted at `/data`, then `docker compose up -d`
 
 Or copy `prices.db` out with `docker cp` after stop.
-
-### HTTPS on a VPS
-
-Put Caddy/nginx in front of port 8080 (or change `MIDDLEMAN_HOST_PORT`), terminate TLS there, and point MetalTracker at `https://prices.example.com`. Prefer setting `MIDDLEMAN_API_KEY` when the service is on the public internet.
 
 ## Run without Docker
 
@@ -74,4 +70,4 @@ go run ./cmd/server
 
 ## Point MetalTracker at it
 
-In **Settings -> Price source**, choose Middleman and set base URL to e.g. `http://127.0.0.1:8080` or your public HTTPS URL (no trailing path). If `MIDDLEMAN_API_KEY` is set, the desktop app does not send it yet - leave that empty for LAN use, or we can add header support later.
+In **Settings -> Price source**, choose Middleman and set base URL to e.g. `http://127.0.0.1:8080` or your public HTTPS URL (no trailing path).

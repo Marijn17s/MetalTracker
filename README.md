@@ -1,15 +1,13 @@
 # MetalTracker
 
-Private, local-first desktop app for tracking a precious-metal portfolio (gold and silver bars & coins). Built with [Wails](https://wails.io) (Go + React).
+Private, local desktop app for tracking a precious metal portfolio (gold and silver bars & coins). Built with [Wails](https://wails.io) (Go + React).
 
 ## Features
 
-- PIN-encrypted vault on your device (exactly **6 digits**)
+- PIN-encrypted vault on your device
 - One-time recovery key at setup
 - Unit-level holdings with groups, sell/edit, and P&L
-- Spot prices via MetalpriceAPI (local cache) or optional Middleman URL
-- Display currency with FX conversion, spot units in g / troy oz / kg
-- In-app Help
+- Spot prices via our API or MetalpriceAPI (BYOK). Alternatively you can host your own instance of our Middleman API.
 
 ## Setup
 
@@ -21,22 +19,24 @@ wails dev
 ```
 
 3. On first launch, create a **6-digit PIN**. Copy and store the recovery key offline.
-4. Open **Settings** if you want your own [MetalpriceAPI](https://metalpriceapi.com/) key; new vaults already use the default Middleman URL.
+4. Open **Settings** if you want to use your own [MetalpriceAPI](https://metalpriceapi.com/) key.
 5. Use **Add** to record a purchase.
 
-### Building (local)
+### Building
 
-Embed a version (optional for local smoke builds):
+Embed a version:
 
 ```bash
 # Windows
-wails build -ldflags "-X MetalTracker/internal/version.Version=v0.0.0-dev"
+wails build -nsis
 
 # macOS / Linux
+wails build
+
 wails build -ldflags "-X MetalTracker/internal/version.Version=v0.0.0-dev"
 ```
 
-Cross-platform examples:
+Build for specific platform:
 
 ```bash
 wails build -platform windows/amd64
@@ -52,7 +52,7 @@ sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
 wails build -platform linux/amd64 -tags webkit2_41
 ```
 
-macOS code signing / notarization is optional and not required for ad-hoc local builds. CI publishes an unsigned `.dmg` for install.
+macOS code signing / notarization is optional and not required for local builds.
 
 ## Install (releases)
 
@@ -69,8 +69,8 @@ Verify downloads against `SHA256SUMS` on the same release.
 
 ### Releasing a new version (maintainers)
 
-1. Merge the work you want to ship to the default branch.
-2. Create and push a semver tag: `vMAJOR.MINOR.PATCH` (lazygit: tag commit -> Tags tab -> `P` to push).
+1. Merge the work you want to ship to the main branch.
+2. Create and push a tag: `vMAJOR.MINOR.PATCH`
 3. GitHub Actions builds Windows / macOS / Linux, uploads assets + `SHA256SUMS`, and creates the GitHub Release.
 4. Do **not** change version strings in source for each release - CI embeds the tag via `-ldflags`.
 
@@ -82,14 +82,12 @@ In **Settings -> About & updates**:
 
 1. **Check for updates** queries the latest GitHub Release.
 2. If newer, review notes and choose **Install update**.
-3. The app downloads the portable asset for your OS/arch, verifies the SHA-256 from `SHA256SUMS`, replaces the running binary, and restarts.
-
-Auto-update requires a **writable** install path (portable exe / user-owned copy). Installs under protected directories (e.g. `Program Files`) may need a manual reinstall from the release page.
+3. The app downloads the portable asset for your OS, verifies the SHA-256 from `SHA256SUMS`, replaces the running binary, and restarts.
 
 ## PIN & recovery
 
 - PIN must be **exactly 6 digits**.
-- If you forget the PIN, use **Forgot PIN?** with your recovery key, then set a new 6-digit PIN.
+- If you forget the PIN, use **Forgot PIN?** with your recovery key, then set a new 6-digit PIN. The recovery key stays valid.
 - If an older vault used a longer PIN, unlock is no longer possible with that PIN - recover with the recovery key and set a 6-digit PIN.
 
 ## Backup & migrate
@@ -109,18 +107,13 @@ Vault files live under the OS user config directory (e.g. `%AppData%\MetalTracke
 
 | Source | Notes |
 |--------|--------|
-| MetalpriceAPI | API key stored encrypted in the vault; quotes cached locally (~6 hours). Requests use `unit=kilogram` (paid plan). |
-| Middleman | Shared cache HTTP API (`middlemanBaseUrl`). New vaults default to Middleman at `https://metaltracker.moose-vimba.ts.net`; you can switch source or point at your own host. Docker: see [`middleman/README.md`](middleman/README.md). |
+| MetalpriceAPI | API key stored encrypted in the vault; Requests use `unit=kilogram` (requires paid plan). |
+| Middleman | Shared cache HTTP API (`middlemanBaseUrl`). New vaults default to use the Middleman at `https://metaltracker.moose-vimba.ts.net`; you can switch source or point at your own host. Docker: see [`middleman/README.md`](middleman/README.md). |
 
-Spot rates are stored and valued **per kilogram** internally; Settings still lets you display spot in g / troy oz / kg.
-
-## Help in the app
-
-Open **Help** in the sidebar for vault, PIN, recovery key, prices, currency, and update notes.
+Spot rates are stored and valued **per kilogram** internally; Settings lets you display spot in g / troy oz / kg.
 
 ## Development
 
 - Backend: `internal/` (domain, storage, price, security, service)
 - Frontend: `frontend/src/`
-- Tests: build the frontend once (`cd frontend && npm run build`), then `go test ./...`  
-  (root package embeds `frontend/dist`). For package tests only: `go test ./internal/...`
+- Tests: build the frontend once (`cd frontend && npm run build`), then `go test ./...` (root package embeds `frontend/dist`). For package tests only: `go test ./internal/...`
