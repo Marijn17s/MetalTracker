@@ -20,6 +20,7 @@ interface SoldArchiveProps {
 
 interface FilterOptions {
   brands: string[];
+  weights: number[];
 }
 
 type SortKey = 'profitPct' | 'profit' | 'value' | 'fineWeight' | 'name' | 'daysHeld' | 'soldAt';
@@ -72,14 +73,15 @@ export function SoldArchive({onOpenUnit}: SoldArchiveProps) {
   const [metals, setMetals] = useState<MetalSymbol[]>([]);
   const [forms, setForms] = useState<Form[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
+  const [weights, setWeights] = useState<number[]>([]);
   const [sortBy, setSortBy] = useState<SortKey>('soldAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [options, setOptions] = useState<FilterOptions>({brands: []});
+  const [options, setOptions] = useState<FilterOptions>({brands: [], weights: []});
   const [units, setUnits] = useState<UnitValuation[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const activeFilterCount = metals.length + forms.length + brands.length;
+  const activeFilterCount = metals.length + forms.length + brands.length + weights.length;
   const sortOptions = [
     {value: 'soldAt' as const, label: t('sold.sortSoldDate')},
     {value: 'profitPct' as const, label: t('holdings.sortProfitPct')},
@@ -91,10 +93,23 @@ export function SoldArchive({onOpenUnit}: SoldArchiveProps) {
   ];
 
   useEffect(() => {
-    GetHoldingsFilterOptions()
-      .then((result) => setOptions({brands: result.brands || []}))
+    GetHoldingsFilterOptions({
+      search: '',
+      metals,
+      forms,
+      brands: [],
+      locations: [],
+      weights: [],
+    } as never)
+      .then((result) => {
+        const nextBrands = result.brands || [];
+        const nextWeights = result.weights || [];
+        setOptions({brands: nextBrands, weights: nextWeights});
+        setBrands((current) => current.filter((brand) => nextBrands.includes(brand)));
+        setWeights((current) => current.filter((weight) => nextWeights.includes(weight)));
+      })
       .catch((err) => setError(formatAppError(err)));
-  }, []);
+  }, [metals, forms]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -105,13 +120,14 @@ export function SoldArchive({onOpenUnit}: SoldArchiveProps) {
         forms,
         brands,
         locations: [],
+        weights,
       } as never)
         .then((result) => setUnits((result || []) as UnitValuation[]))
         .catch((err) => setError(formatAppError(err)))
         .finally(() => setLoading(false));
     }, 200);
     return () => window.clearTimeout(handle);
-  }, [search, metals, forms, brands]);
+  }, [search, metals, forms, brands, weights]);
 
   const sortedUnits = useMemo(
     () => [...units].sort((left, right) => compareUnits(left, right, sortBy, sortDirection)),
@@ -136,6 +152,7 @@ export function SoldArchive({onOpenUnit}: SoldArchiveProps) {
     setMetals([]);
     setForms([]);
     setBrands([]);
+    setWeights([]);
   }
 
   return (
@@ -159,6 +176,9 @@ export function SoldArchive({onOpenUnit}: SoldArchiveProps) {
         brands={brands}
         onBrandsChange={setBrands}
         brandOptions={options.brands}
+        weights={weights}
+        onWeightsChange={setWeights}
+        weightOptions={options.weights}
         sortBy={sortBy}
         onSortByChange={setSortBy}
         sortDirection={sortDirection}

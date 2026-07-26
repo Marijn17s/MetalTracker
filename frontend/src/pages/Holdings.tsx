@@ -22,6 +22,7 @@ interface HoldingsProps {
 interface FilterOptions {
   brands: string[];
   locations: string[];
+  weights: number[];
 }
 
 type SortKey = 'profitPct' | 'profit' | 'value' | 'fineWeight' | 'name' | 'heldCount';
@@ -72,14 +73,15 @@ export function Holdings({onOpenGroup}: HoldingsProps) {
   const [forms, setForms] = useState<Form[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
+  const [weights, setWeights] = useState<number[]>([]);
   const [sortBy, setSortBy] = useState<SortKey>('profitPct');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [options, setOptions] = useState<FilterOptions>({brands: [], locations: []});
+  const [options, setOptions] = useState<FilterOptions>({brands: [], locations: [], weights: []});
   const [groups, setGroups] = useState<GroupedHolding[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const activeFilterCount = metals.length + forms.length + brands.length + locations.length;
+  const activeFilterCount = metals.length + forms.length + brands.length + locations.length + weights.length;
   const sortOptions = [
     {value: 'profitPct' as const, label: t('holdings.sortProfitPct')},
     {value: 'profit' as const, label: t('holdings.sortProfit')},
@@ -90,15 +92,29 @@ export function Holdings({onOpenGroup}: HoldingsProps) {
   ];
 
   useEffect(() => {
-    GetHoldingsFilterOptions()
+    GetHoldingsFilterOptions({
+      search: '',
+      metals,
+      forms,
+      brands: [],
+      locations: [],
+      weights: [],
+    } as never)
       .then((result) => {
+        const nextBrands = result.brands || [];
+        const nextLocations = result.locations || [];
+        const nextWeights = result.weights || [];
         setOptions({
-          brands: result.brands || [],
-          locations: result.locations || [],
+          brands: nextBrands,
+          locations: nextLocations,
+          weights: nextWeights,
         });
+        setBrands((current) => current.filter((brand) => nextBrands.includes(brand)));
+        setLocations((current) => current.filter((location) => nextLocations.includes(location)));
+        setWeights((current) => current.filter((weight) => nextWeights.includes(weight)));
       })
       .catch((err) => setError(formatAppError(err)));
-  }, []);
+  }, [metals, forms]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -109,13 +125,14 @@ export function Holdings({onOpenGroup}: HoldingsProps) {
         forms,
         brands,
         locations,
+        weights,
       } as never)
         .then((result) => setGroups((result || []) as GroupedHolding[]))
         .catch((err) => setError(formatAppError(err)))
         .finally(() => setLoading(false));
     }, 200);
     return () => window.clearTimeout(handle);
-  }, [search, metals, forms, brands, locations]);
+  }, [search, metals, forms, brands, locations, weights]);
 
   const anyApproximate = groups.some((group) => group.valuationApproximate);
 
@@ -143,6 +160,7 @@ export function Holdings({onOpenGroup}: HoldingsProps) {
     setForms([]);
     setBrands([]);
     setLocations([]);
+    setWeights([]);
   }
 
   return (
@@ -168,6 +186,9 @@ export function Holdings({onOpenGroup}: HoldingsProps) {
         locations={locations}
         onLocationsChange={setLocations}
         locationOptions={options.locations}
+        weights={weights}
+        onWeightsChange={setWeights}
+        weightOptions={options.weights}
         sortBy={sortBy}
         onSortByChange={setSortBy}
         sortDirection={sortDirection}

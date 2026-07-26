@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {useLocale} from '../i18n/LocaleContext';
 import {Form, MetalSymbol} from '../types';
+import {formatWeight} from '../utils/format';
 
 export type SortDirection = 'asc' | 'desc';
 
@@ -23,6 +24,9 @@ interface InventoryToolbarProps<TSort extends string> {
   locations?: string[];
   onLocationsChange?: (value: string[]) => void;
   locationOptions?: string[];
+  weights?: number[];
+  onWeightsChange?: (value: number[]) => void;
+  weightOptions?: number[];
   sortBy: TSort;
   onSortByChange: (value: TSort) => void;
   sortDirection: SortDirection;
@@ -32,7 +36,7 @@ interface InventoryToolbarProps<TSort extends string> {
   onClear: () => void;
 }
 
-function toggleValue<T extends string>(values: T[], value: T): T[] {
+function toggleValue<T extends string | number>(values: T[], value: T): T[] {
   return values.includes(value)
     ? values.filter((item) => item !== value)
     : [...values, value];
@@ -52,6 +56,9 @@ export function InventoryToolbar<TSort extends string>({
   locations,
   onLocationsChange,
   locationOptions,
+  weights,
+  onWeightsChange,
+  weightOptions,
   sortBy,
   onSortByChange,
   sortDirection,
@@ -66,8 +73,15 @@ export function InventoryToolbar<TSort extends string>({
   const locationValues = locations || [];
   const availableLocations = locationOptions || [];
   const showLocations = Boolean(onLocationsChange && availableLocations.length > 0);
+  const weightValues = weights || [];
+  const availableWeights = weightOptions || [];
+  const showWeights = Boolean(onWeightsChange && availableWeights.length > 0);
   const activeFilterCount =
-    metals.length + forms.length + brands.length + (showLocations ? locationValues.length : 0);
+    metals.length +
+    forms.length +
+    brands.length +
+    (showLocations ? locationValues.length : 0) +
+    (showWeights ? weightValues.length : 0);
   const hasActiveQuery = Boolean(search || activeFilterCount > 0);
 
   function handleClear() {
@@ -192,6 +206,24 @@ export function InventoryToolbar<TSort extends string>({
                     onClick={() => onLocationsChange(toggleValue(locationValues, location))}
                   >
                     {location}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {showWeights && onWeightsChange && (
+            <div className="filter-group filter-group-inline">
+              <span className="filter-label">{t('holdings.weight')}</span>
+              <div className="filter-chips">
+                {availableWeights.map((weight) => (
+                  <button
+                    key={weight}
+                    type="button"
+                    className={`range-chip ${weightValues.includes(weight) ? 'active' : ''}`}
+                    onClick={() => onWeightsChange(toggleValue(weightValues, weight))}
+                  >
+                    {formatWeight(weight)}
                   </button>
                 ))}
               </div>

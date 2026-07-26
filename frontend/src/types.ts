@@ -104,11 +104,13 @@ export interface HoldingsFilter {
   forms: string[];
   brands: string[];
   locations: string[];
+  weights: number[];
 }
 
 export interface HoldingsFilterOptions {
   brands: string[];
   locations: string[];
+  weights: number[];
 }
 
 export interface Attachment {

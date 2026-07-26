@@ -54,8 +54,8 @@ export function GetDateFormatPattern() {
   return window['go']['main']['App']['GetDateFormatPattern']();
 }
 
-export function GetHoldingsFilterOptions() {
-  return window['go']['main']['App']['GetHoldingsFilterOptions']();
+export function GetHoldingsFilterOptions(arg1) {
+  return window['go']['main']['App']['GetHoldingsFilterOptions'](arg1);
 }
 
 export function GetLatestPrices() {

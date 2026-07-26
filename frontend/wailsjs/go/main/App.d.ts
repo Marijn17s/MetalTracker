@@ -29,7 +29,7 @@ export function GetAttachmentBytes(arg1:string):Promise<domain.AttachmentBytes>;
 
 export function GetDateFormatPattern():Promise<string>;
 
-export function GetHoldingsFilterOptions():Promise<domain.HoldingsFilterOptions>;
+export function GetHoldingsFilterOptions(arg1:domain.HoldingsFilter):Promise<domain.HoldingsFilterOptions>;
 
 export function GetLatestPrices():Promise<domain.SpotQuote>;
 

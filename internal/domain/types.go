@@ -262,16 +262,18 @@ type GroupedHolding struct {
 }
 
 type HoldingsFilter struct {
-	Search    string   `json:"search"`
-	Metals    []string `json:"metals"`
-	Forms     []string `json:"forms"`
-	Brands    []string `json:"brands"`
-	Locations []string `json:"locations"`
+	Search    string    `json:"search"`
+	Metals    []string  `json:"metals"`
+	Forms     []string  `json:"forms"`
+	Brands    []string  `json:"brands"`
+	Locations []string  `json:"locations"`
+	Weights   []float64 `json:"weights"`
 }
 
 type HoldingsFilterOptions struct {
-	Brands    []string `json:"brands"`
-	Locations []string `json:"locations"`
+	Brands    []string  `json:"brands"`
+	Locations []string  `json:"locations"`
+	Weights   []float64 `json:"weights"`
 }
 
 type SellUnitRequest struct {

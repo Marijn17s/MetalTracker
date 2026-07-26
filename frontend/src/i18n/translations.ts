@@ -94,6 +94,7 @@ const english = {
   'holdings.type': 'Type',
   'holdings.brand': 'Brand',
   'holdings.location': 'Location',
+  'holdings.weight': 'Weight',
   'holdings.sort': 'Sort',
   'holdings.sortProfitPct': 'P&L %',
   'holdings.sortProfit': 'P&L',

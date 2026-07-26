@@ -170,7 +170,7 @@ func (services *AppServices) ListGroupedHoldings(ctx context.Context, filter dom
 	return result, nil
 }
 
-func (services *AppServices) GetHoldingsFilterOptions() (domain.HoldingsFilterOptions, error) {
+func (services *AppServices) GetHoldingsFilterOptions(filter domain.HoldingsFilter) (domain.HoldingsFilterOptions, error) {
 	services.mu.Lock()
 	defer services.mu.Unlock()
 	if err := services.requireUnlockedLocked(); err != nil {
@@ -182,9 +182,18 @@ func (services *AppServices) GetHoldingsFilterOptions() (domain.HoldingsFilterOp
 		return domain.HoldingsFilterOptions{}, mapError(err)
 	}
 
+	scope := domain.HoldingsFilter{
+		Metals: filter.Metals,
+		Forms:  filter.Forms,
+	}
+
 	brandSet := map[string]struct{}{}
 	locationSet := map[string]struct{}{}
+	weightSet := map[float64]struct{}{}
 	for _, unit := range units {
+		if !domain.UnitMatchesHoldingsFilter(unit, scope) {
+			continue
+		}
 		brand := strings.TrimSpace(unit.Brand)
 		if brand == "" {
 			brand = "Unknown"
@@ -195,11 +204,13 @@ func (services *AppServices) GetHoldingsFilterOptions() (domain.HoldingsFilterOp
 			location = "Unset"
 		}
 		locationSet[location] = struct{}{}
+		weightSet[unit.WeightGrams] = struct{}{}
 	}
 
 	options := domain.HoldingsFilterOptions{
 		Brands:    make([]string, 0, len(brandSet)),
 		Locations: make([]string, 0, len(locationSet)),
+		Weights:   make([]float64, 0, len(weightSet)),
 	}
 	for brand := range brandSet {
 		options.Brands = append(options.Brands, brand)
@@ -207,8 +218,12 @@ func (services *AppServices) GetHoldingsFilterOptions() (domain.HoldingsFilterOp
 	for location := range locationSet {
 		options.Locations = append(options.Locations, location)
 	}
+	for weight := range weightSet {
+		options.Weights = append(options.Weights, weight)
+	}
 	sort.Strings(options.Brands)
 	sort.Strings(options.Locations)
+	sort.Float64s(options.Weights)
 	return options, nil
 }
 

@@ -315,6 +315,7 @@ export namespace domain {
 	    forms: string[];
 	    brands: string[];
 	    locations: string[];
+	    weights: number[];
 	
 	    static createFrom(source: any = {}) {
 	        return new HoldingsFilter(source);
@@ -327,11 +328,13 @@ export namespace domain {
 	        this.forms = source["forms"];
 	        this.brands = source["brands"];
 	        this.locations = source["locations"];
+	        this.weights = source["weights"];
 	    }
 	}
 	export class HoldingsFilterOptions {
 	    brands: string[];
 	    locations: string[];
+	    weights: number[];
 	
 	    static createFrom(source: any = {}) {
 	        return new HoldingsFilterOptions(source);
@@ -341,6 +344,7 @@ export namespace domain {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.brands = source["brands"];
 	        this.locations = source["locations"];
+	        this.weights = source["weights"];
 	    }
 	}
 	

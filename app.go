@@ -87,8 +87,8 @@ func (application *App) ListGroupedHoldings(filter domain.HoldingsFilter) ([]dom
 	return application.services.ListGroupedHoldings(application.ctx, filter)
 }
 
-func (application *App) GetHoldingsFilterOptions() (domain.HoldingsFilterOptions, error) {
-	return application.services.GetHoldingsFilterOptions()
+func (application *App) GetHoldingsFilterOptions(filter domain.HoldingsFilter) (domain.HoldingsFilterOptions, error) {
+	return application.services.GetHoldingsFilterOptions(filter)
 }
 
 func (application *App) ListUnitsInGroup(productKey string) ([]domain.UnitValuation, error) {

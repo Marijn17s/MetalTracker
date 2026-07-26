@@ -102,12 +102,24 @@ func UnitMatchesHoldingsFilter(unit HoldingUnit, filter HoldingsFilter) bool {
 			return false
 		}
 	}
+	if len(filter.Weights) > 0 && !floatIn(filter.Weights, unit.WeightGrams) {
+		return false
+	}
 	return true
 }
 
 func stringInFold(values []string, candidate string) bool {
 	for _, value := range values {
 		if strings.EqualFold(strings.TrimSpace(value), strings.TrimSpace(candidate)) {
+			return true
+		}
+	}
+	return false
+}
+
+func floatIn(values []float64, candidate float64) bool {
+	for _, value := range values {
+		if value == candidate {
 			return true
 		}
 	}

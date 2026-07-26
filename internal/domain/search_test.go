@@ -57,4 +57,11 @@ func TestUnitMatchesHoldingsFilter(t *testing.T) {
 	if UnitMatchesHoldingsFilter(unit, HoldingsFilter{Locations: []string{"Bank"}}) {
 		t.Fatal("expected location filter to reject other location")
 	}
+	unit.WeightGrams = 31.1
+	if !UnitMatchesHoldingsFilter(unit, HoldingsFilter{Weights: []float64{31.1}}) {
+		t.Fatal("expected weight filter to match")
+	}
+	if UnitMatchesHoldingsFilter(unit, HoldingsFilter{Weights: []float64{10}}) {
+		t.Fatal("expected weight filter to reject other weight")
+	}
 }
