@@ -45,6 +45,48 @@
   color-scheme: light;
 }
 
+/*
+ * Linux WebViewGpuPolicyNever disables GPU, so backdrop-filter blur does nothing.
+ * Use near-opaque surfaces so panels/modals/toasts stay readable without frost.
+ */
+[data-platform="linux"] {
+  --glass: color-mix(in srgb, var(--bg-mid) 94%, white);
+  --sticky-bg: color-mix(in srgb, var(--bg-deep) 96%, transparent);
+  --input-bg: color-mix(in srgb, var(--bg-deep) 78%, transparent);
+  --tooltip-bg: color-mix(in srgb, var(--bg-mid) 96%, white);
+}
+
+[data-platform="linux"][data-theme="light"] {
+  --glass: color-mix(in srgb, var(--bg-mid) 90%, white);
+  --sticky-bg: color-mix(in srgb, var(--bg-deep) 94%, white);
+  --input-bg: color-mix(in srgb, white 92%, transparent);
+  --tooltip-bg: color-mix(in srgb, var(--bg-deep) 96%, white);
+}
+
+[data-platform="linux"] .glass,
+[data-platform="linux"] .sticky-form-actions,
+[data-platform="linux"] .attachment-icon-btn {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-platform="linux"] .glass-inset {
+  background: color-mix(in srgb, var(--bg-deep) 55%, transparent);
+  border-color: var(--glass-border);
+}
+
+[data-platform="linux"] .modal-panel.glass,
+[data-platform="linux"] .toast.glass,
+[data-platform="linux"] .lock-panel.glass {
+  background: color-mix(in srgb, var(--bg-mid) 97%, white);
+}
+
+[data-platform="linux"][data-theme="light"] .modal-panel.glass,
+[data-platform="linux"][data-theme="light"] .toast.glass,
+[data-platform="linux"][data-theme="light"] .lock-panel.glass {
+  background: color-mix(in srgb, var(--bg-deep) 96%, white);
+}
+
 * {
   box-sizing: border-box;
   /* Disable macOS rubber-band bounce at scroll edges (WKWebView). */
